@@ -1,0 +1,6 @@
+rules:
+  - id: python-sql-string-interpolation
+    languages: [python]
+    message: User-controlled data must not be interpolated into SQL queries
+    severity: ERROR
+    pattern: $CURSOR.execute(f"...{$VALUE}...")

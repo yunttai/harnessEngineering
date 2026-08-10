@@ -24,3 +24,14 @@
 | 무단 배포 | 승인 상태 서버 측 검증 |
 | Docker 권한 탈취 | 소켓 외부 노출 금지, 배포 기능 최소화 |
 | 민감정보 저장 | 저장 전 토큰·쿠키·비밀번호 마스킹 |
+
+## 구현된 보안 게이트
+
+- 외부 JSON은 `extra=forbid` 스키마를 통과해야 하고 시간대, IP, HTTP 경로와 메서드를 검증한다.
+- 저장되는 공격 payload는 민감 키가 마스킹된 JSON이며 raw header/cookie는 저장하지 않는다.
+- Flask 라우트와 취약 SQL은 문자열 실행 없이 Python AST로 분석한다.
+- 원본 파일은 패치 생성·승인 과정에서 쓰지 않고, 승인 후에도 허용 workspace 복사본만 수정한다.
+- 이미지 태그는 서버가 UUID에서 생성하고 `attack2patch-demo:*` 정규식 allowlist를 적용한다.
+- subprocess는 shell 문자열 없이 고정 argument 배열만 사용한다.
+- Docker socket은 외부 port가 없으며 전용 Runtime adapter만 접근한다.
+- 배포 승인 여부와 모든 검증 결과는 서버에서 재확인하며 클라이언트 버튼 상태를 신뢰하지 않는다.

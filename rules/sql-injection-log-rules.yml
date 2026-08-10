@@ -1,7 +1,11 @@
 rules:
-  - id: sql-injection-log-pattern
-    description: Detect representative SQL Injection text in sanitized HTTP logs
-    patterns:
-      - "(?i)'\\s*or\\s+"
-      - "(?i)union\\s+select"
-      - "(?i)(sleep|benchmark)\\s*\\("
+  - id: sqli-boolean-bypass
+    pattern: "(?i)'\\s*or\\s+(?:'[^']*'|\\d+|\\w+)\\s*="
+  - id: sqli-union-select
+    pattern: "(?i)\\bunion\\s+(?:all\\s+)?select\\b"
+  - id: sqli-comment
+    pattern: "(?i)(--|/\\*)"
+  - id: sqli-time-delay
+    pattern: "(?i)\\b(sleep|benchmark)\\s*\\("
+  - id: sqli-stacked-query
+    pattern: "(?i);\\s*(select|insert|update|delete)\\b"

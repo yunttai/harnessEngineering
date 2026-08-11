@@ -245,7 +245,16 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--expected-arch", required=True, choices=("amd64", "arm64"))
     args = parser.parse_args()
-    print(json.dumps(run_smoke(args.expected_arch), indent=2, sort_keys=True))
+    try:
+        result = run_smoke(args.expected_arch)
+    except Exception as exc:
+        message = f"{type(exc).__name__}: {exc}"
+        escaped = (
+            message.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+        )
+        print(f"::error title=Attack2Patch Docker smoke failed::{escaped}")
+        raise
+    print(json.dumps(result, indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":

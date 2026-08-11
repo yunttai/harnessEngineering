@@ -5,14 +5,15 @@ import shutil
 from pathlib import Path
 from typing import Any
 
+from autopatch.config import SandboxSettings
 from autopatch.runtime.command import CommandRunner
+from autopatch.runtime.scanner_container import DockerScannerRunner
 from autopatch.service.normalization import (
     finding_id_from_fingerprint,
     make_fingerprint,
     normalize_relative_path,
 )
 from autopatch.types import Evidence, Finding, Severity
-
 
 _SEVERITY_MAP = {
     "ERROR": Severity.HIGH,
@@ -32,31 +33,61 @@ class SemgrepScanner:
         config_path: Path,
         required: bool = False,
         timeout_seconds: int = 180,
+        execution: str = "auto",
+        docker_image: str | None = None,
+        docker_network: str = "none",
+        sandbox_settings: SandboxSettings | None = None,
         runner: CommandRunner | None = None,
+        docker_runner: DockerScannerRunner | None = None,
     ) -> None:
         self.config_path = config_path.resolve()
         self.required = required
         self.timeout_seconds = timeout_seconds
+        self.execution = execution
+        self.docker_image = docker_image
+        self.docker_network = docker_network
         self.runner = runner or CommandRunner()
+        self.docker_runner = docker_runner or DockerScannerRunner(
+            sandbox_settings or SandboxSettings(),
+            runner=self.runner,
+        )
 
     def available(self) -> bool:
-        return shutil.which("semgrep") is not None and self.config_path.exists()
+        return self.config_path.exists() and (
+            self._native_available() or self._docker_available()
+        )
+
+    def _native_available(self) -> bool:
+        return self.execution in {"auto", "native"} and shutil.which("semgrep") is not None
+
+    def _docker_available(self) -> bool:
+        return (
+            self.execution in {"auto", "docker"}
+            and self.docker_image is not None
+            and self.docker_runner.available()
+        )
 
     def scan(self, target: Path) -> list[Finding]:
         target = target.resolve()
-        result = self.runner.run(
-            [
-                "semgrep",
-                "scan",
-                "--json",
-                "--metrics=off",
-                "--config",
-                str(self.config_path),
-                ".",
-            ],
-            cwd=target,
-            timeout_seconds=self.timeout_seconds,
-        )
+        arguments = ["scan", "--json", "--metrics=off"]
+        if self._native_available():
+            result = self.runner.run(
+                ["semgrep", *arguments, "--config", str(self.config_path), "."],
+                cwd=target,
+                timeout_seconds=self.timeout_seconds,
+            )
+        elif self._docker_available():
+            assert self.docker_image is not None
+            result = self.docker_runner.run(
+                image=self.docker_image,
+                argv=["semgrep", *arguments, "--config", "/rules", "."],
+                target=target,
+                timeout_seconds=self.timeout_seconds,
+                network=self.docker_network,
+                mounts=[(self.config_path, "/rules", True)],
+            )
+        else:
+            raise RuntimeError("Semgrep is unavailable for the configured execution mode")
         if result.timed_out:
             raise TimeoutError(f"semgrep timed out after {self.timeout_seconds}s")
         if result.exit_code not in {0, 1}:

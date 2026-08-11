@@ -72,11 +72,11 @@
 | scan | 허용 | 로컬 허가 경로 |
 | patch candidate | 허용 | dry-run |
 | project test | 비활성 | 명시적 `--execute-tests` |
-| 원본 적용 | 비활성 | VERIFIED + `--apply` |
-| branch/commit | 비활성 | 정책 + clean tree |
-| push/PR | 비활성 | 사용자 승인 + credential |
+| 원본 적용 (`run`) | 비활성 | VERIFIED + `--apply` |
+| branch/commit/push | `publish` 호출 시 활성 | VERIFIED + clean tree + 기존 Git 인증 |
+| PR | 비활성 | `--pull-request` + 별도 credential |
 | DAST | 비활성 | authorized target |
-| deploy | 비활성 | staging/canary/rollback + 승인 |
+| deploy | 비활성 | pushed commit gate + staging/canary/bounded observation/promotion/rollback + 승인 |
 
 ## 취약점 신고
 

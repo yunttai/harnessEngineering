@@ -1,0 +1,53 @@
+{
+  "$defs": {
+    "StageStatus": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "SKIPPED",
+        "ERROR"
+      ],
+      "title": "StageStatus",
+      "type": "string"
+    }
+  },
+  "description": "Non-mutating evidence that a GitHub App installation can serve one repository.",
+  "properties": {
+    "checked_at": {
+      "format": "date-time",
+      "title": "Checked At",
+      "type": "string"
+    },
+    "installation_id": {
+      "title": "Installation Id",
+      "type": "string"
+    },
+    "permissions": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Permissions",
+      "type": "object"
+    },
+    "repository": {
+      "title": "Repository",
+      "type": "string"
+    },
+    "repository_selection": {
+      "title": "Repository Selection",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/StageStatus"
+    }
+  },
+  "required": [
+    "status",
+    "repository",
+    "installation_id",
+    "repository_selection",
+    "permissions"
+  ],
+  "title": "GitHubAppSmokeResult",
+  "type": "object"
+}

@@ -21,25 +21,30 @@ def _git(target: Path, *args: str) -> str:
     return result.stdout.strip()
 
 
-def test_verified_run_can_create_intentional_local_branch_and_commit(
+def test_verified_run_defaults_to_attack2patch_branch_commit_and_push(
     vulnerable_project: Path,
     repository_root: Path,
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    remote = tmp_path / "remote.git"
+    subprocess.run(
+        ["git", "init", "--bare", str(remote)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
     _git(vulnerable_project, "init")
     _git(vulnerable_project, "config", "user.email", "attack2patch@example.invalid")
     _git(vulnerable_project, "config", "user.name", "Attack2Patch Test")
     _git(vulnerable_project, "add", ".")
     _git(vulnerable_project, "commit", "-m", "fixture")
+    _git(vulnerable_project, "remote", "add", "origin", str(remote))
 
     config_path = repository_root / "config" / "harness.yaml"
     settings = load_settings(config_path)
     settings.llm.enabled = False
     settings.artifact_root = "artifacts"
-    settings.autonomy.apply_patch = True
-    settings.autonomy.create_branch = True
-    settings.autonomy.create_commit = True
     monkeypatch.chdir(tmp_path)
     report = build_orchestrator(
         settings=settings,
@@ -56,14 +61,16 @@ def test_verified_run_can_create_intentional_local_branch_and_commit(
     result = service.publish(
         vulnerable_project,
         report,
-        PublishOptions(create_commit=True, branch="attack2patch/security/fixture"),
+        PublishOptions(),
     )
 
     assert result.commit_sha == _git(vulnerable_project, "rev-parse", "HEAD")
-    assert _git(vulnerable_project, "branch", "--show-current") == "attack2patch/security/fixture"
+    assert result.pushed is True
+    assert _git(vulnerable_project, "branch", "--show-current") == "Attack2patch"
+    assert _git(remote, "rev-parse", "refs/heads/Attack2patch") == result.commit_sha
     assert _git(vulnerable_project, "status", "--porcelain") == ""
     assert "cursor.execute(query, (user_id,))" in (
         vulnerable_project / "app.py"
     ).read_text(encoding="utf-8")
     body = service._pull_request_body(report, service._selected(report), result)
-    assert "/actions?query=branch%3Aattack2patch%2Fsecurity%2Ffixture" in body
+    assert "/actions?query=branch%3AAttack2patch" in body

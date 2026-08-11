@@ -1,20 +1,31 @@
 from __future__ import annotations
 
+import shutil
 from copy import deepcopy
 from pathlib import Path
 
 from autopatch.config import HarnessSettings
+from autopatch.providers import DastProvider
 from autopatch.repo import ArtifactStore
 from autopatch.runtime.builtin_patcher import BuiltinCwe89Patcher
 from autopatch.runtime.builtin_scanner import BuiltinPythonScanner
+from autopatch.runtime.builtin_security_patchers import (
+    BuiltinCwe22FlaskPatcher,
+    BuiltinCwe78Patcher,
+    BuiltinCwe502YamlPatcher,
+)
 from autopatch.runtime.cli_llm_provider import CliLlmProvider
+from autopatch.runtime.dast import NucleiDastProvider, ZapDastProvider
+from autopatch.runtime.deployment import CommandDeploymentProvider
 from autopatch.runtime.external_scanners import GitleaksScanner, TrivyScanner
 from autopatch.runtime.git_publisher import LocalGitPublisher
 from autopatch.runtime.github_publisher import GitHubAppPullRequestPublisher
 from autopatch.runtime.patch_apply import SafePatchApplier
 from autopatch.runtime.semgrep_scanner import SemgrepScanner
-from autopatch.runtime.verifier import LocalCopyVerifier
+from autopatch.runtime.verifier import DockerSandboxVerifier, LocalCopyVerifier
 from autopatch.service.analysis import RuleBasedAnalyzer
+from autopatch.service.dast import DastService
+from autopatch.service.deployment import DeploymentService
 from autopatch.service.detection import DetectionService
 from autopatch.service.orchestrator import Orchestrator
 from autopatch.service.providers import CompositePatchProvider
@@ -27,6 +38,7 @@ def build_orchestrator(
     config_path: Path,
     execute_tests: bool | None = None,
     execute_security_tests: bool | None = None,
+    execute_dast: bool | None = None,
 ) -> Orchestrator:
     detection = build_detection_service(settings=settings, config_path=config_path)
     excluded = set(settings.scope.excluded_directories)
@@ -38,16 +50,47 @@ def build_orchestrator(
         verification_settings.execute_project_security_tests = execute_security_tests
 
     applier = SafePatchApplier()
-    verifier = LocalCopyVerifier(
-        detection=detection,
-        settings=verification_settings,
-        excluded_directories=excluded,
-        applier=applier,
-    )
+    run_dast = bool(execute_dast)
+    if run_dast and (
+        not settings.autonomy.execute_dast or not settings.dast.enabled
+    ):
+        raise PermissionError(
+            "DAST execution requires autonomy.execute_dast=true and dast.enabled=true"
+        )
+    dast_providers = build_dast_providers(settings=settings)
+    if settings.sandbox.provider == "docker":
+        if shutil.which(settings.sandbox.docker_executable) is None:
+            raise RuntimeError(
+                f"Docker sandbox executable is unavailable: {settings.sandbox.docker_executable}"
+            )
+        verifier = DockerSandboxVerifier(
+            detection=detection,
+            settings=verification_settings,
+            sandbox_settings=settings.sandbox,
+            dast_settings=settings.dast,
+            dast_providers=dast_providers,
+            execute_dast=run_dast,
+            excluded_directories=excluded,
+            applier=applier,
+        )
+    else:
+        if run_dast:
+            raise ValueError("dynamic DAST verification requires sandbox.provider=docker")
+        verifier = LocalCopyVerifier(
+            detection=detection,
+            settings=verification_settings,
+            excluded_directories=excluded,
+            applier=applier,
+        )
     store = build_artifact_store(settings=settings)
 
     analyzer = RuleBasedAnalyzer()
-    patch_providers = [BuiltinCwe89Patcher()]
+    patch_providers = [
+        BuiltinCwe89Patcher(),
+        BuiltinCwe22FlaskPatcher(),
+        BuiltinCwe78Patcher(),
+        BuiltinCwe502YamlPatcher(),
+    ]
     if settings.llm.enabled:
         llm = CliLlmProvider(settings.llm)
         if not llm.available():
@@ -106,6 +149,10 @@ def build_detection_service(
                 config_path=rules,
                 required=scanner_config.required,
                 timeout_seconds=scanner_config.timeout_seconds,
+                execution=scanner_config.execution,
+                docker_image=scanner_config.docker_image,
+                docker_network=scanner_config.docker_network,
+                sandbox_settings=settings.sandbox,
             )
             # Keep auto/explicit providers in the registry even when unavailable so
             # DetectionService records the skipped tool as execution evidence.
@@ -115,6 +162,11 @@ def build_detection_service(
                 TrivyScanner(
                     required=scanner_config.required,
                     timeout_seconds=scanner_config.timeout_seconds,
+                    execution=scanner_config.execution,
+                    docker_image=scanner_config.docker_image,
+                    docker_network=scanner_config.docker_network,
+                    cache_dir=Path.cwd() / ".autopatch" / "cache" / "trivy",
+                    sandbox_settings=settings.sandbox,
                 )
             )
         elif scanner_config.name == "gitleaks":
@@ -122,6 +174,10 @@ def build_detection_service(
                 GitleaksScanner(
                     required=scanner_config.required,
                     timeout_seconds=scanner_config.timeout_seconds,
+                    execution=scanner_config.execution,
+                    docker_image=scanner_config.docker_image,
+                    docker_network=scanner_config.docker_network,
+                    sandbox_settings=settings.sandbox,
                 )
             )
 
@@ -154,3 +210,41 @@ def build_publishing_service(
         applier=SafePatchApplier(),
         pull_requests=pull_requests,
     )
+
+
+def build_dast_providers(*, settings: HarnessSettings) -> list[DastProvider]:
+    providers: list[DastProvider] = []
+    if settings.dast.zap.enabled:
+        providers.append(
+            ZapDastProvider(
+                settings.dast,
+                settings.dast.zap,
+                sandbox_settings=settings.sandbox,
+            )
+        )
+    if settings.dast.nuclei.enabled:
+        providers.append(
+            NucleiDastProvider(
+                settings.dast,
+                settings.dast.nuclei,
+                sandbox_settings=settings.sandbox,
+            )
+        )
+    return providers
+
+
+def build_dast_service(*, settings: HarnessSettings) -> DastService:
+    return DastService(build_dast_providers(settings=settings))
+
+
+def build_deployment_service(
+    *,
+    settings: HarnessSettings,
+    config_path: Path,
+) -> DeploymentService:
+    repository_root = config_path.resolve().parent.parent
+    provider = CommandDeploymentProvider(
+        settings.deployment,
+        repository_root=repository_root,
+    )
+    return DeploymentService(settings=settings, provider=provider)

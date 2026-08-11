@@ -25,5 +25,7 @@ build/
 # Editors / OS
 .vscode/
 .idea/
+.codegraph/
+.cursor/
 .DS_Store
 Thumbs.db

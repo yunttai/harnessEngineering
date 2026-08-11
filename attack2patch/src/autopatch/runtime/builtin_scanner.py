@@ -10,7 +10,6 @@ from autopatch.runtime.fs import iter_source_files
 from autopatch.service.normalization import finding_id_from_fingerprint, make_fingerprint
 from autopatch.types import Evidence, Finding, Severity
 
-
 SQL_KEYWORDS = re.compile(r"\b(select|insert|update|delete|replace|with)\b", re.IGNORECASE)
 SECRET_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("AWS access key", re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
@@ -188,6 +187,84 @@ class _PythonVisitor(ast.NodeVisitor):
                     sink=call_name,
                     function=self.function,
                     semantic_key=ast.unparse(node.args[0]),
+                    metadata={
+                        "call_name": call_name,
+                        "call_line": node.lineno,
+                        "command_expression": ast.unparse(node.args[0]),
+                    },
+                )
+
+        if call_name in {"yaml.load", "yaml.unsafe_load"} and node.args:
+            loader = next(
+                (keyword.value for keyword in node.keywords if keyword.arg == "Loader"),
+                None,
+            )
+            loader_name = self._call_name(loader) if loader is not None else None
+            unsafe_loader = call_name == "yaml.unsafe_load" or (
+                call_name == "yaml.load"
+                and loader_name
+                in {
+                    None,
+                    "Loader",
+                    "FullLoader",
+                    "UnsafeLoader",
+                    "yaml.Loader",
+                    "yaml.FullLoader",
+                    "yaml.UnsafeLoader",
+                }
+            )
+            if unsafe_loader and not isinstance(node.args[0], ast.Constant):
+                self._add_finding(
+                    cwe="CWE-502",
+                    finding_type="Unsafe Deserialization",
+                    severity=Severity.HIGH,
+                    rule_id="autopatch.python.unsafe-yaml-loader",
+                    message="Potentially untrusted data reaches an unsafe YAML loader",
+                    line=node.lineno,
+                    end_line=getattr(node, "end_lineno", node.lineno),
+                    source=self._source_expression(node.args[0]) or ast.unparse(node.args[0]),
+                    sink=call_name,
+                    function=self.function,
+                    semantic_key=f"{call_name}:{ast.unparse(node.args[0])}:{loader_name}",
+                    metadata={
+                        "call_name": call_name,
+                        "call_line": node.lineno,
+                        "loader": loader_name,
+                    },
+                )
+
+        if call_name == "flask.send_file" and len(node.args) == 1:
+            joined = node.args[0]
+            if (
+                isinstance(joined, ast.Call)
+                and self._call_name(joined.func) == "os.path.join"
+                and len(joined.args) == 2
+                and not joined.keywords
+                and not isinstance(joined.args[1], ast.Constant)
+            ):
+                self._add_finding(
+                    cwe="CWE-22",
+                    finding_type="Path Traversal",
+                    severity=Severity.HIGH,
+                    rule_id="autopatch.python.flask-send-file-join",
+                    message="User-controlled path is joined and passed directly to flask.send_file",
+                    line=node.lineno,
+                    end_line=getattr(node, "end_lineno", node.lineno),
+                    source=(
+                        self._source_expression(joined.args[1])
+                        or ast.unparse(joined.args[1])
+                    ),
+                    sink=call_name,
+                    function=self.function,
+                    semantic_key=(
+                        f"{ast.unparse(joined.args[0])}:{ast.unparse(joined.args[1])}"
+                    ),
+                    metadata={
+                        "call_line": node.lineno,
+                        "root_expression": ast.unparse(joined.args[0]),
+                        "root_trusted": self._source_expression(joined.args[0]) is None,
+                        "path_expression": ast.unparse(joined.args[1]),
+                    },
                 )
 
         if call_name in {"pickle.loads", "pickle.load"} and node.args:
@@ -274,9 +351,24 @@ class _PythonVisitor(ast.NodeVisitor):
             "request.form.get",
             "request.values.get",
             "request.get_json",
+            "flask.request.args.get",
+            "flask.request.form.get",
+            "flask.request.values.get",
+            "flask.request.get_json",
             "sys.stdin.read",
         }:
             return call_name
+        if isinstance(node, ast.Subscript):
+            container = self._call_name(node.value)
+            if container in {
+                "request.args",
+                "request.form",
+                "request.values",
+                "flask.request.args",
+                "flask.request.form",
+                "flask.request.values",
+            }:
+                return container
         if isinstance(node, ast.Name):
             return self.tainted.get(node.id)
         if isinstance(node, ast.JoinedStr):

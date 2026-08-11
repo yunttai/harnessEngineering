@@ -33,6 +33,7 @@ class RunRequest(BaseModel):
     apply: bool = False
     execute_tests: bool = False
     execute_security_tests: bool = False
+    execute_dast: bool = False
     use_llm: bool | None = None
 
 
@@ -85,7 +86,9 @@ def run(request: RunRequest) -> dict[str, object]:
         settings = load_settings(config_path)
         if request.use_llm is not None:
             settings.llm.enabled = request.use_llm
-        if (request.execute_tests or request.execute_security_tests) and not settings.autonomy.execute_tests:
+        if (
+            request.execute_tests or request.execute_security_tests
+        ) and not settings.autonomy.execute_tests:
             raise HTTPException(
                 status_code=403,
                 detail=(
@@ -93,12 +96,20 @@ def run(request: RunRequest) -> dict[str, object]:
                     "selected configuration"
                 ),
             )
+        if request.execute_dast and (
+            not settings.autonomy.execute_dast or not settings.dast.enabled
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="API DAST requires autonomy.execute_dast=true and dast.enabled=true",
+            )
         target = validate_target(Path(request.target), settings)
         orchestrator = build_orchestrator(
             settings=settings,
             config_path=config_path,
             execute_tests=request.execute_tests,
             execute_security_tests=request.execute_security_tests,
+            execute_dast=request.execute_dast,
         )
         report = orchestrator.run(target, apply=False)
         return report.model_dump(mode="json")

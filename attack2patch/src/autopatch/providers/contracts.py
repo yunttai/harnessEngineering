@@ -6,6 +6,7 @@ from typing import Protocol, runtime_checkable
 from autopatch.types import (
     AnalysisResult,
     CandidateEvaluation,
+    DastScanResult,
     DeploymentPhase,
     DeploymentResult,
     Finding,
@@ -96,3 +97,20 @@ class DeploymentProvider(Protocol):
     name: str
 
     def execute(self, target: Path, phase: DeploymentPhase) -> DeploymentResult: ...
+
+
+@runtime_checkable
+class DastProvider(Protocol):
+    name: str
+
+    def available(self) -> bool: ...
+
+    def scan(
+        self,
+        target: str,
+        *,
+        sandbox_target: bool = False,
+        network_name: str | None = None,
+        workspace: Path | None = None,
+        template: str | None = None,
+    ) -> DastScanResult: ...

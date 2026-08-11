@@ -15,14 +15,15 @@
 | --- | --- | --- |
 | 맵·지식베이스 | A | AGENTS/ARCHITECTURE/docs와 링크 검사 |
 | Finding Schema | A | Pydantic 모델과 JSON Schema 생성 |
-| 내장 Python 탐지 | B | CWE-89/78/502/secret 지원, 언어 범위 제한 |
+| 내장 Python 탐지 | B | 좁은 CWE-22/78/89/502/secret 지원, 언어·framework 범위 제한 |
 | 외부 scanner | B | Semgrep/Trivy/Gitleaks/SARIF parser, 실제 binary matrix 필요 |
 | 분석 | B | 결정적 CWE 분석과 세 가지 local CLI structured-output provider, interprocedural flow 필요 |
-| 패치 생성 | B | CWE-89 codemod와 CLI schema/hash/range 검증 LLM TextEdit provider |
-| 검증 | B | local-copy build/test/re-scan/구조 검증 |
-| 격리 | C | Docker/VM security boundary 미구현 |
-| Git/PR | B | 로컬 branch/commit/push와 mock 검증 GitHub App draft PR |
-| 배포 | C | argv staging/canary/rollback provider와 runbook, 실제 관측 미연결 |
+| 패치 생성 | B | CWE-22/78/89/502 fail-closed AST codemod와 구조화 LLM TextEdit provider |
+| 검증 | A | local-copy/Docker build·test·re-scan, manifest/DAST와 CWE별 독립 AST oracle |
+| 격리 | A | 실제 Docker에서 source read-only/workspace writable, internal network readiness와 cleanup 검증 |
+| DAST | A | 실제 containerized ZAP 리포트 파싱과 Nuclei baseline 1→patched 0 differential 검증 |
+| Git/PR | B | 설치/repository/permission smoke 구현; 실제 credential 실행 evidence 필요 |
+| 배포 | A | pushed commit gate, 실제 Docker staging/canary/bounded observation/promotion PASS와 실패 rollback 테스트 |
 | 문서 드리프트 | A | check-links/doc-gardening |
 | 하네스 자체 테스트 | A | scanner/patcher/scoring/orchestrator 테스트 |
 

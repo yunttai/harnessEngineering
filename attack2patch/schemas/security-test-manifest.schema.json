@@ -1,0 +1,226 @@
+{
+  "$defs": {
+    "ApplicationSpec": {
+      "additionalProperties": false,
+      "description": "Application process launched inside the configured Docker sandbox.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 64,
+          "minItems": 1,
+          "title": "Command",
+          "type": "array"
+        },
+        "container_port": {
+          "maximum": 65535,
+          "minimum": 1,
+          "title": "Container Port",
+          "type": "integer"
+        },
+        "readiness": {
+          "$ref": "#/$defs/ReadinessProbe"
+        }
+      },
+      "required": [
+        "command",
+        "container_port"
+      ],
+      "title": "ApplicationSpec",
+      "type": "object"
+    },
+    "DastTestCase": {
+      "additionalProperties": false,
+      "description": "Expected scanner delta for a finding-specific dynamic test.",
+      "properties": {
+        "baseline_min_findings": {
+          "default": 1,
+          "minimum": 0,
+          "title": "Baseline Min Findings",
+          "type": "integer"
+        },
+        "finding": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Finding",
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "patched_max_findings": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Patched Max Findings",
+          "type": "integer"
+        },
+        "path": {
+          "default": "/",
+          "title": "Path",
+          "type": "string"
+        },
+        "template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Template"
+        },
+        "tool": {
+          "enum": [
+            "zap",
+            "nuclei"
+          ],
+          "title": "Tool",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "finding",
+        "tool"
+      ],
+      "title": "DastTestCase",
+      "type": "object"
+    },
+    "ReadinessProbe": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_status": {
+          "default": 200,
+          "maximum": 599,
+          "minimum": 100,
+          "title": "Expected Status",
+          "type": "integer"
+        },
+        "interval_ms": {
+          "default": 250,
+          "maximum": 5000,
+          "minimum": 50,
+          "title": "Interval Ms",
+          "type": "integer"
+        },
+        "path": {
+          "default": "/",
+          "title": "Path",
+          "type": "string"
+        },
+        "timeout_seconds": {
+          "default": 30,
+          "maximum": 600,
+          "minimum": 1,
+          "title": "Timeout Seconds",
+          "type": "integer"
+        }
+      },
+      "title": "ReadinessProbe",
+      "type": "object"
+    },
+    "SecurityTestCase": {
+      "additionalProperties": false,
+      "description": "A manifest command with explicit pre/post-patch expectations.",
+      "properties": {
+        "baseline_expected_exit_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Baseline Expected Exit Code"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 64,
+          "minItems": 1,
+          "title": "Command",
+          "type": "array"
+        },
+        "expected_exit_code": {
+          "default": 0,
+          "title": "Expected Exit Code",
+          "type": "integer"
+        },
+        "finding": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Finding",
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "timeout_seconds": {
+          "default": 60,
+          "maximum": 3600,
+          "minimum": 1,
+          "title": "Timeout Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "finding",
+        "command"
+      ],
+      "title": "SecurityTestCase",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Strict boundary schema for local exploit and Docker DAST verification.",
+  "properties": {
+    "application": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ApplicationSpec"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "dast": {
+      "items": {
+        "$ref": "#/$defs/DastTestCase"
+      },
+      "maxItems": 256,
+      "title": "Dast",
+      "type": "array"
+    },
+    "tests": {
+      "items": {
+        "$ref": "#/$defs/SecurityTestCase"
+      },
+      "maxItems": 256,
+      "title": "Tests",
+      "type": "array"
+    },
+    "version": {
+      "const": 1,
+      "default": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "title": "SecurityTestManifest",
+  "type": "object"
+}

@@ -7,16 +7,19 @@ from typing import Annotated, Literal, cast
 
 import typer
 
-from autopatch.config import load_settings
+from autopatch.config import GitHubAppSettings, load_settings
 from autopatch.runtime.factory import (
     build_artifact_store,
+    build_dast_service,
+    build_deployment_service,
     build_detection_service,
     build_orchestrator,
     build_publishing_service,
 )
+from autopatch.runtime.github_publisher import GitHubAppPullRequestPublisher
 from autopatch.service import PublishOptions
-from autopatch.types import FindingStatus, RunState
-from autopatch.ui.common import validate_target
+from autopatch.types import FindingStatus, RunState, StageStatus
+from autopatch.ui.common import validate_dast_target, validate_target
 
 app = typer.Typer(
     name="attack2patch",
@@ -102,6 +105,17 @@ def run(
             help="Execute autopatch-security-tests.yaml commands; only for trusted targets",
         ),
     ] = False,
+    execute_dast: Annotated[
+        bool,
+        typer.Option(
+            "--execute-dast",
+            help="Run authorized before/after DAST through the Docker sandbox",
+        ),
+    ] = False,
+    sandbox: Annotated[
+        Literal["local-copy", "docker"] | None,
+        typer.Option("--sandbox", help="Override the configured verification sandbox"),
+    ] = None,
     llm_cli: Annotated[
         str | None,
         typer.Option(
@@ -148,6 +162,14 @@ def run(
         if not settings.llm.enabled:
             raise typer.BadParameter("--llm-model requires --llm-cli or llm.enabled=true")
         settings.llm.model = llm_model.strip() or None
+    if sandbox is not None:
+        settings.sandbox.provider = sandbox
+    if execute_dast and (
+        not settings.autonomy.execute_dast or not settings.dast.enabled
+    ):
+        raise typer.BadParameter(
+            "--execute-dast requires autonomy.execute_dast=true and dast.enabled=true"
+        )
     resolved = validate_target(target, settings)
 
     orchestrator = build_orchestrator(
@@ -155,6 +177,7 @@ def run(
         config_path=config_path,
         execute_tests=execute_tests,
         execute_security_tests=execute_security_tests,
+        execute_dast=execute_dast,
     )
     report = orchestrator.run(resolved, apply=apply)
 
@@ -226,19 +249,25 @@ def publish(
     ] = None,
     commit: Annotated[
         bool,
-        typer.Option("--commit", help="Commit only the selected candidate files"),
-    ] = False,
+        typer.Option(
+            "--commit/--no-commit",
+            help="Commit only the selected candidate files; enabled by default",
+        ),
+    ] = True,
     push: Annotated[
         bool,
-        typer.Option("--push", help="Push the committed branch to the configured remote"),
-    ] = False,
+        typer.Option(
+            "--push/--no-push",
+            help="Push the committed branch to the configured remote; enabled by default",
+        ),
+    ] = True,
     pull_request: Annotated[
         bool,
         typer.Option("--pull-request", help="Create a draft PR through the configured GitHub App"),
     ] = False,
     branch: Annotated[
         str | None,
-        typer.Option("--branch", help="Override the generated security branch name"),
+        typer.Option("--branch", help="Override the default Attack2patch branch name"),
     ] = None,
 ) -> None:
     """Apply and publish a previously VERIFIED run through independent gates."""
@@ -265,6 +294,7 @@ def publish(
             outcome.applied = True
             outcome.status = FindingStatus.APPLIED
             outcome.finding.status = FindingStatus.APPLIED
+    report.publishing = result
     report.pull_request = result.pull_request
     final_state = RunState.PR_CREATED if result.pull_request else RunState.APPLIED
     report.transition(
@@ -280,6 +310,129 @@ def publish(
     typer.echo(f"branch: {result.branch}")
     typer.echo(f"commit: {result.commit_sha or '-'}")
     typer.echo(f"pull_request: {result.pull_request.url if result.pull_request else '-'}")
+
+
+@app.command("dast")
+def dast_scan(
+    target: Annotated[str, typer.Argument(help="Explicitly authorized HTTP(S) target")],
+    config: Annotated[
+        Path | None,
+        typer.Option("--config", help="Harness YAML configuration"),
+    ] = None,
+    tool: Annotated[
+        list[str] | None,
+        typer.Option("--tool", help="Enabled provider to run: zap or nuclei"),
+    ] = None,
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Print machine-readable JSON"),
+    ] = False,
+) -> None:
+    """Run DAST only after both configuration and target authorization checks."""
+    config_path = _config_path(config)
+    settings = load_settings(config_path)
+    if not settings.autonomy.execute_dast:
+        raise typer.BadParameter("DAST autonomy gate is disabled")
+    authorized = validate_dast_target(target, settings)
+    selected = [item.strip().lower() for item in (tool or [])]
+    if any(item not in {"zap", "nuclei"} for item in selected):
+        raise typer.BadParameter("--tool must be zap or nuclei")
+    results = build_dast_service(settings=settings).scan(
+        authorized,
+        tools=selected or None,
+    )
+    if json_output:
+        typer.echo(
+            json.dumps(
+                [result.model_dump(mode="json") for result in results],
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+    else:
+        for result in results:
+            typer.echo(
+                f"{result.tool}: status={result.status} findings={len(result.findings)} "
+                f"target={result.target}"
+            )
+            if result.reason:
+                typer.echo(f"  reason: {result.reason}")
+    if any(result.status is StageStatus.ERROR for result in results):
+        raise typer.Exit(code=2)
+
+
+@app.command("deploy")
+def deploy(
+    target: Annotated[Path, typer.Argument(help="Authorized local Git repository")],
+    run_id: Annotated[str, typer.Argument(help="Pushed Attack2Patch run id")],
+    config: Annotated[
+        Path | None,
+        typer.Option("--config", help="Harness YAML configuration"),
+    ] = None,
+    approve: Annotated[
+        bool,
+        typer.Option("--approve", help="Approve staging, canary, observation, and promotion"),
+    ] = False,
+) -> None:
+    """Promote a pushed commit and automatically roll back any failed phase."""
+    config_path = _config_path(config)
+    settings = load_settings(config_path)
+    resolved = validate_target(target, settings)
+    store = build_artifact_store(settings=settings)
+    report = store.read_run(run_id)
+    if Path(report.target).resolve() != resolved:
+        raise typer.BadParameter("run target does not match the requested repository")
+    service = build_deployment_service(settings=settings, config_path=config_path)
+    report = service.deploy(resolved, report, approved=approve)
+    store.write_run(report)
+    typer.echo(f"state: {report.state}")
+    for result in report.deployments:
+        typer.echo(
+            f"- {result.phase}: {result.status} "
+            f"exit_code={result.exit_code if result.exit_code is not None else '-'}"
+        )
+    if report.state is RunState.DEPLOY_FAILED:
+        raise typer.Exit(code=4)
+
+
+@app.command("github-app-smoke")
+def github_app_smoke(
+    repository: Annotated[
+        str,
+        typer.Option("--repository", help="Exact owner/repository installation target"),
+    ],
+    config: Annotated[
+        Path | None,
+        typer.Option("--config", help="Harness YAML configuration"),
+    ] = None,
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Print machine-readable evidence"),
+    ] = False,
+) -> None:
+    """Validate GitHub App credentials and permissions without creating a PR."""
+    settings = load_settings(_config_path(config))
+    configured = settings.publishing.github_app
+    if configured.repository is not None and configured.repository.lower() != repository.lower():
+        raise typer.BadParameter("repository differs from publishing.github_app.repository")
+    smoke_settings = GitHubAppSettings.model_validate(
+        {**configured.model_dump(), "enabled": True, "repository": repository}
+    )
+    publisher = GitHubAppPullRequestPublisher(smoke_settings)
+    if not publisher.available():
+        raise typer.BadParameter(
+            "GitHub App smoke requires the configured app id, installation id, "
+            "and private key env vars"
+        )
+    result = publisher.smoke_test()
+    if json_output:
+        typer.echo(result.model_dump_json(indent=2))
+    else:
+        typer.echo(
+            f"status={result.status} repository={result.repository} "
+            f"installation={result.installation_id}"
+        )
+        typer.echo(f"permissions={json.dumps(result.permissions, sort_keys=True)}")
 
 
 @app.command()

@@ -79,7 +79,9 @@ attack2patch/src/autopatch/
 │   ├── scoring.py               40/30/15/10/5 후보 점수
 │   ├── metrics.py               run 단위 평가 지표 집계
 │   ├── orchestrator.py          분석→패치→검증→피드백→선택 상태 머신
-│   └── publishing.py            VERIFIED-only apply/branch/commit/push/PR 정책
+│   ├── publishing.py            VERIFIED-only apply/branch/commit/push/PR 정책
+│   ├── dast.py                  명시적 DAST provider 선택·실행
+│   └── deployment.py            staging/canary/observation/promotion/rollback 정책
 ├── runtime/
 │   ├── factory.py               service와 runtime 구현 조립
 │   ├── fs.py                    안전한 경로, hash, 소스 파일 순회
@@ -88,12 +90,16 @@ attack2patch/src/autopatch/
 │   ├── semgrep_scanner.py       Semgrep JSON adapter
 │   ├── external_scanners.py     SARIF/Trivy/Gitleaks parser와 adapter
 │   ├── builtin_patcher.py       CWE-89 parameterized-query 패처
+│   ├── builtin_security_patchers.py  좁은 CWE-22/78/502 AST 패처
 │   ├── cli_llm_provider.py      Codex/OpenCode/Claude CLI 분석·패치 adapter
 │   ├── patch_apply.py           hash를 확인하는 TextEdit 적용기
+│   ├── manifest.py              exploit/application/DAST manifest strict parser
+│   ├── sandbox.py               Docker 격리 command/application session과 cleanup
+│   ├── dast.py                  ZAP/Nuclei adapter와 출력 정규화
 │   ├── verifier.py              임시 복사본 4단계 검증
 │   ├── git_publisher.py         로컬 Git branch/commit/push adapter
 │   ├── github_publisher.py      GitHub App token/draft PR adapter
-│   └── deployment.py            staging/canary/rollback 명령 adapter
+│   └── deployment.py            staging/canary/observation/promotion/rollback 명령 adapter
 └── ui/
     ├── common.py                로컬 target와 DAST 허가 검증
     ├── cli.py                   scan/run/publish/serve 명령
@@ -166,14 +172,15 @@ CLI `publish TARGET RUN_ID`
   → service.publishing.PublishingService.publish
       → VERIFIED 및 eligible evidence 확인
       → autonomy 게이트와 clean worktree 확인
-      → branch 생성
+      → 기본 `Attack2patch` branch 생성
       → 원본 SHA를 확인하며 선택 패치 적용
-      → 선택 옵션에 따라 commit → push → draft PR
-  → 변경된 RunReport와 PR evidence 저장
+      → 기본 commit → push, 선택 옵션에 따라 draft PR
+  → 변경된 RunReport와 pushed commit/optional PR evidence 저장
 ```
 
 API는 MVP에서 원본 적용을 의도적으로 거부합니다. `apply`와 publish는 로컬 CLI의 명시적 옵션과
-설정 게이트를 함께 통과해야 합니다.
+설정 게이트를 함께 통과해야 합니다. `publish` 호출 자체는 VERIFIED 패치의 branch/commit/push
+승인이고, PR은 계속 `--pull-request`로 별도 승인합니다.
 
 ## 5. 기능별 코드 매핑
 
@@ -189,21 +196,23 @@ API는 MVP에서 원본 적용을 의도적으로 거부합니다. `apply`와 pu
 | SARIF/Trivy/Gitleaks 정규화 | `Scanner`, `Finding` | `detection.py` | `external_scanners.py` | scanner별 timeout/required 설정 | `test_external_scanners.py` |
 | fingerprint와 중복 제거 | `Finding.fingerprint` | `normalization.py`, `detection.py` | 각 scanner가 정규화 함수를 사용 | `findings.json` | `test_normalization.py`, `test_scanner.py` |
 | root-cause 분석 | `AnalysisProvider`, `AnalysisResult` | `analysis.py` | 규칙 기반 분석은 `service/analysis.py`, 선택적 LLM은 `runtime/cli_llm_provider.py` | `finding-*/analysis.json` | `test_cli_llm_provider.py`, orchestrator 테스트 |
-| 최소 패치 후보 | `PatchProvider`, `PatchCandidate`, `TextEdit` | `providers.py`가 여러 provider 결과 병합 | `builtin_patcher.py`, `cli_llm_provider.py` | `patching`, `llm`, `candidates.json` | `test_patcher.py`, `test_cli_llm_provider.py` |
+| 최소 패치 후보 | `PatchProvider`, `PatchCandidate`, `TextEdit` | `providers.py`가 여러 provider 결과 병합 | `builtin_patcher.py`, `builtin_security_patchers.py`, `cli_llm_provider.py` | `patching`, `llm`, `candidates.json` | `test_patcher.py`, `test_cli_llm_provider.py` |
 | 안전한 패치 적용 | `PatchApplier`, `TextEdit.original_sha256` | orchestrator/publishing이 적용 시점 결정 | `patch_apply.py`, `fs.py` | `selected.diff`, 원본 SHA | `test_patcher.py`, `test_orchestrator.py` |
 | build 검증 | `VerificationProvider`, `StageResult` | `scoring.py`, `orchestrator.py` | `verifier.py::_build`, `command.py` | `verification.build_*`, `evaluations.json` | `test_verifier.py` |
 | regression 검증 | `StageResult` | 필수 게이트와 점수 반영 | `verifier.py::_functional_test` | opt-in test 설정, `evaluations.json` | `test_verifier.py`, `test_api.py` |
 | security re-scan | `Finding`, `StageResult` | 잔존 finding이면 후보 탈락 | `verifier.py::_security_rescan` | scanner evidence, `evaluations.json` | `test_verifier.py` |
 | exploit mitigation | `StageResult` | 가능한 검증 실패 시 후보 탈락 | `verifier.py::_exploit_mitigation`, `_manifest_security_tests` | `autopatch-security-tests.yaml` | `test_verifier.py`, 예제 `security_test.py` |
+| Docker 격리 | `VerificationReport.sandbox_kind` | verifier provider 선택 | `sandbox.py`, `DockerSandboxVerifier` | `sandbox.*` | `test_sandbox.py` |
+| DAST differential | `DastScanResult`, `SecurityTestManifest` | 전후 Finding 기준 판정 | `dast.py`, Docker application readiness | `dast.*`, manifest/schema | `test_dast.py`, `test_manifest.py`, `test_sandbox.py` |
 | 후보 점수·선택 | `PatchScore`, `CandidateEvaluation` | `scoring.py`, `orchestrator.py` | — | `evaluations.json`, `selected.diff` | `test_orchestrator.py`, `test_verifier.py` |
 | 실패 피드백·재시도 | `PatchFeedback` | `orchestrator.py::_feedback_for_attempt` | patch provider가 feedback을 입력으로 받음 | `autonomy.max_patch_attempts`, `feedback.json` | `test_feedback.py` |
 | run 평가 지표 | `RunMetrics` | `metrics.py` | — | `run.json` | orchestrator 테스트 |
 | evidence/redaction | `RunReport`와 하위 모델 | 각 service가 기록 시점을 결정 | `repo/artifacts.py` | `.autopatch/runs/`, `logging.redact_patterns` | `test_artifacts.py` |
 | Git branch/commit/push | `GitPublisher`, `PublishingResult` | `publishing.py` | `git_publisher.py` | `publishing`, `autonomy` | `test_publishing.py` |
-| GitHub App draft PR | `PullRequestPublisher`, PR 모델 | `publishing.py`가 evidence 본문 생성 | `github_publisher.py` | `publishing.github_app` | `test_github_publisher.py` |
+| GitHub App smoke/PR | `GitHubAppSmokeResult`, `PullRequestPublisher` | `publishing.py`가 evidence 본문 생성 | `github_publisher.py`, CLI `github-app-smoke` | `publishing.github_app` | `test_github_publisher.py` |
 | CLI | 위 모델을 문자열/JSON으로 표시 | orchestrator/publishing 호출 | `ui/cli.py`, `__main__.py` | `AUTOPATCH_CONFIG` | 핵심 동작은 service/API 테스트로 검증 |
 | FastAPI | 요청 모델과 `RunReport` | orchestrator 호출, 동시 run 잠금 | `ui/api.py` | API에서는 apply 금지 | `test_api.py` |
-| staging/canary/rollback | `DeploymentProvider`, `DeploymentResult` | 현재 기본 run/publish 루프와 분리 | `deployment.py` | `deployment.*`, rollback runbook | 설정 검증과 향후 provider 통합 대상 |
+| staging/canary/observation/promotion/rollback | `DeploymentProvider`, `DeploymentResult` | `DeploymentService`가 bounded 관측, production promotion과 rollback 판정 | `deployment.py`, CLI `deploy` | `deployment.*`, rollback runbook | `test_deployment.py` |
 | JSON Schema/문서 검증 | Pydantic 모델 | — | `scripts/generate-schemas.py`, check scripts | `schemas/`, 상위 `docs/generated/` | `scripts/check.sh` |
 
 ## 6. 기능을 변경할 때의 탐색 경로
@@ -280,13 +289,14 @@ API는 MVP에서 원본 적용을 의도적으로 거부합니다. `apply`와 pu
 
 코드를 읽을 때 다음을 구현 완료로 오해하지 않도록 주의합니다.
 
-- 내장 자동 패처의 결정적 수정 범위는 현재 **CWE-89**입니다.
+- 내장 자동 패처는 CWE-89와 좁은 CWE-22/78/502 AST shape만 결정적으로 수정하며, pattern이
+  불확실하거나 pickle migration이 필요하면 후보를 만들지 않습니다.
 - Codex CLI 분석·패치 provider가 기본 활성화되며 OpenCode/Claude는 설정이나 `--llm-cli`로 교체합니다.
 - 선택한 CLI의 설치와 자체 로그인이 필요하며 Attack2Patch는 API key를 보관하지 않습니다.
 - Semgrep, Trivy, Gitleaks는 설치된 경우 실행되는 선택 provider입니다.
-- DAST는 허가 설정과 경계 검증이 있으며 ZAP/Nuclei 실행 adapter는 향후 범위입니다.
-- staging/canary/rollback은 명령 provider와 runbook이 있지만 기본 오케스트레이션에서 자동
-  실행하지 않습니다.
+- DAST는 exact target 또는 명시적 sandbox-internal target 허가에서만 ZAP/Nuclei provider를 실행합니다.
+- Docker 격리와 DAST는 opt-in이며 daemon/image/binary가 없으면 fail-closed입니다.
+- staging/canary/bounded observation/promotion/rollback은 별도 `deploy --approve` 흐름이며 자동 기본 동작이 아닙니다.
 - FastAPI는 조회와 dry-run 실행 경계이며 원본 apply와 publish를 허용하지 않습니다.
 - 인증/인가, IDOR, 복잡한 비즈니스 로직은 자동 수정보다 사람 검토가 우선입니다.
 

@@ -10,11 +10,18 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from autopatch.types import Finding, RunReport  # noqa: E402
+from autopatch.types import (  # noqa: E402
+    Finding,
+    GitHubAppSmokeResult,
+    RunReport,
+    SecurityTestManifest,
+)
 
 SCHEMAS: dict[str, dict[str, Any]] = {
     "finding.schema.json": Finding.model_json_schema(),
+    "github-app-smoke.schema.json": GitHubAppSmokeResult.model_json_schema(),
     "run-report.schema.json": RunReport.model_json_schema(),
+    "security-test-manifest.schema.json": SecurityTestManifest.model_json_schema(),
 }
 
 

@@ -9,7 +9,7 @@
 | name | 고유 도구 이름 |
 | category | sast/sca/secret/dast/test/llm/scm/sandbox |
 | command | shell 문자열이 아닌 argv template |
-| parser | semgrep-json, sarif, trivy-json 등 |
+| parser | semgrep-json, sarif, trivy-json, zap-json, nuclei-jsonl 등 |
 | timeout | 단계별 최대 실행 시간 |
 | required | 실패 시 전체 run을 중단할지 |
 | network | 네트워크 필요 여부 |
@@ -25,6 +25,10 @@
 - 경로와 config는 target root 밖으로 escape할 수 없습니다.
 - LLM 도구는 선택한 local CLI의 자체 인증 저장소를 사용하며 API key를 harness 설정에 받지 않습니다.
 - Codex/Claude의 native schema 출력과 OpenCode JSONL event는 모두 로컬 Pydantic 모델로 재검증합니다.
+- ZAP/Nuclei는 exact authorized target 또는 명시적 sandbox-internal target만 실행합니다.
+- Docker sandbox는 digest-pinned image, 기본 network none, read-only source/rootfs, writable 임시
+  workspace와 자원 제한을 사용합니다.
+- production policy 검사는 Python/ZAP/Nuclei digest와 amd64/arm64 Actions matrix를 강제합니다.
 
 ## 정규화
 

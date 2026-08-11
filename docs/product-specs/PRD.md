@@ -39,7 +39,7 @@ MVP에서 다음은 기본 자동 완료 범위가 아닙니다.
 | AppSec/DevSecOps 엔지니어 | 반복 Finding의 수정·검증 자동화 |
 | 개발자 | 리뷰 가능한 최소 diff와 실패 원인 |
 | 보안 연구자 | 후보·검증 결과·성공률 실험 데이터 |
-| 운영 담당자 | staging/canary/rollback이 포함된 전달 정보 |
+| 운영 담당자 | staging/canary/observation/promotion/rollback이 포함된 전달 정보 |
 
 ## 5. 기능 요구사항
 
@@ -57,16 +57,16 @@ MVP에서 다음은 기본 자동 완료 범위가 아닙니다.
 | FR-10 | 후보 점수·선택 | P0 | 40/30/15/10/5 점수와 필수 게이트 적용 |
 | FR-11 | 실패 피드백 | P1 | stage별 실패 사유가 다음 시도 입력으로 저장 |
 | FR-12 | 원본 적용 | P1 | VERIFIED + 명시적 apply에서만 hash 검증 후 반영 |
-| FR-13 | branch/PR | P1 | verified evidence를 포함한 draft PR 생성 가능 |
+| FR-13 | branch/PR | P1 | publish 시 `Attack2patch` branch/commit/push, 선택적 draft PR |
 | FR-14 | API | P1 | scan/run 상태를 FastAPI로 요청 가능 |
-| FR-15 | staging/canary | P2 | provider와 rollback runbook 연결 |
+| FR-15 | staging/canary/promotion | P2 | provider와 rollback runbook 연결 |
 
 ## 6. 비기능 요구사항
 
 ### 보안
 
 - 로컬 경로만 기본 허용
-- dry-run 기본
+- `scan`/`run` dry-run 기본, 명시적 `publish`는 VERIFIED branch/commit/push 수행
 - shell command interpolation 금지
 - secret redaction
 - 대상 테스트 실행 opt-in
@@ -100,6 +100,35 @@ MVP에서 다음은 기본 자동 완료 범위가 아닙니다.
 - [x] 하네스 자체 pytest
 - [x] Codex/OpenCode/Claude CLI structured output provider
 - [x] GitHub App PR provider
+
+## 7.1 MVP 3 수용 기준
+
+- [x] Docker read-only source와 writable 임시 workspace
+- [x] CPU/memory/PID/timeout과 기본 network none
+- [x] application readiness probe
+- [x] Pydantic exploit/DAST manifest와 생성 JSON Schema
+- [x] authorized ZAP/Nuclei provider
+- [x] baseline/patched differential oracle
+- [x] container/network/workspace cleanup
+- [x] pushed commit run의 staging→canary→observation→promotion과 실패 rollback
+- [x] 실제 Docker daemon에서 source/workspace 경계와 ZAP/Nuclei image smoke test
+
+2026-08-12 로컬 Docker Desktop에서 Python application readiness, Nuclei 1→0 differential,
+ZAP JSON report 파싱과 잔여 container/network 0건을 확인했습니다. 고정 image digest의
+Linux amd64/arm64 Docker matrix와 Linux/Windows/macOS 하네스 matrix를 운영 하드닝에 추가했습니다.
+
+## 7.2 운영 하드닝 수용 기준
+
+- [x] Python/ZAP/Nuclei multi-architecture manifest digest 고정
+- [x] amd64/arm64 Docker smoke Actions matrix와 drift 검사
+- [x] mutation 없는 GitHub App installation/repository/permission smoke 경로
+- [x] canary 이후 bounded observation과 실패 자동 rollback
+- [x] 좁은 CWE-22/78/502 결정적 패처와 독립 AST oracle
+- [ ] 실제 repository secret을 사용한 GitHub App 수동 smoke 실행
+- [ ] remote arm64 Actions job 실행 evidence
+
+credential 생성과 저장, workflow push는 별도 외부 권한이므로 코드 수용 기준과 실제 운영 실행
+evidence를 분리합니다.
 
 ## 8. 상태 및 실패 상태
 
@@ -145,4 +174,4 @@ DEPLOY_FAILED
 | 대상 테스트 실행 | 악성 코드 실행 | 기본 off, 격리 provider |
 | scanner 우회 패치 | 취약점 잔존 | 독립 security 리뷰와 exploit 검증 |
 | 복잡 business logic | 오수정 | 사람 검토 |
-| 배포 자동화 | 운영 장애 | MVP 비목표, staging/canary/rollback |
+| 배포 자동화 | 운영 장애 | 명시적 승인, staging/canary/observation/promotion/rollback |

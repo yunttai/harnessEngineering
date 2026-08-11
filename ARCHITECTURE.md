@@ -38,13 +38,14 @@ Verification Harness
   ├─ build/type/lint
   ├─ regression
   ├─ security re-scan
-  └─ exploit mitigation
+  ├─ exploit mitigation
+  └─ opt-in Docker/DAST before→after differential
       │
       ├─ FAIL → feedback → Patch Harness
       └─ PASS
            │
            ▼
-Review Gate → Git Branch/PR → Staging/Canary → Production
+Review Gate → Git Branch/PR → Staging/Canary → Observation → Production
 ```
 
 운영 배포는 MVP의 자동 기본 동작이 아닙니다. 검증된 패치를 브랜치/PR로 전달하는 수준을
@@ -149,8 +150,16 @@ VERIFYING
 6. regression 실패 후보는 선택할 수 없습니다.
 7. exploit 검증이 가능한데 실패하면 선택할 수 없습니다.
 8. 검증이 SKIPPED인 항목은 보고서에 명시하며 신뢰도를 낮춥니다.
-9. 패치 적용, Git, PR, 배포는 독립된 자율성 게이트입니다.
+9. `run`의 패치 적용, PR, 배포는 독립된 자율성 게이트입니다. 명시적 `publish` 호출은
+   VERIFIED 패치의 적용과 기본 `Attack2patch` branch/commit/push를 승인합니다.
 10. 공격 재현/DAST는 허가된 대상과 명시된 정책에서만 수행합니다.
+11. Docker 검증은 원본 read-only, 임시 workspace writable, rootfs read-only와 기본 network none을
+    사용하며 실패 시 local-copy로 자동 fallback하지 않습니다.
+12. Docker image는 tag가 아닌 검토된 multi-architecture manifest digest를 사용합니다.
+13. canary 성공은 배포 완료가 아니며 bounded observation의 실패·timeout·한도 소진은 rollback을
+    실행합니다.
+14. 결정적 패처는 의미 보존이 확인된 AST shape에서만 후보를 생성하며 불확실하면 사람/LLM 검토로
+    넘깁니다.
 
 ## 6. 패치 점수
 

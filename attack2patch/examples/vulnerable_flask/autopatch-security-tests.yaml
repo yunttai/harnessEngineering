@@ -1,4 +1,11 @@
 version: 1
+application:
+  command: [python, app.py, --serve]
+  container_port: 8000
+  readiness:
+    path: /health
+    expected_status: 200
+    timeout_seconds: 30
 tests:
   - id: cwe-89-get-user
     finding: CWE-89
@@ -6,4 +13,17 @@ tests:
       - python
       - security_test.py
     timeout_seconds: 30
+    baseline_expected_exit_code: 1
     expected_exit_code: 0
+dast:
+  - id: cwe-89-real-sqlite-nuclei
+    finding: CWE-89
+    tool: nuclei
+    template: nuclei-sqli.yaml
+    baseline_min_findings: 1
+    patched_max_findings: 0
+  - id: cwe-89-zap-runtime
+    finding: CWE-89
+    tool: zap
+    baseline_min_findings: 0
+    patched_max_findings: 1000

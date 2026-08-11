@@ -110,11 +110,26 @@ tools:
 
   zap:
     category: dast
+    command:
+      - zap-baseline.py
+      - -t
+      - TARGET
+      - -J
+      - zap-report.json
+      - -I
+    parser: zap-json
     enabled_by_default: false
     authorization_required: true
 
   nuclei:
     category: dast
+    command:
+      - nuclei
+      - -u
+      - TARGET
+      - -jsonl
+      - -silent
+    parser: nuclei-jsonl
     enabled_by_default: false
     authorization_required: true
 

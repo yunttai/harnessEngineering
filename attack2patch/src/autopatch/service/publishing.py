@@ -21,7 +21,7 @@ from autopatch.types import (
 @dataclass(frozen=True, slots=True)
 class PublishOptions:
     create_commit: bool = True
-    push_branch: bool = False
+    push_branch: bool = True
     create_pull_request: bool = False
     branch: str | None = None
 
@@ -73,7 +73,11 @@ class PublishingService:
         for candidate in selected:
             self.applier.apply(target, candidate)
 
-        result = PublishingResult(base_sha=base_sha, branch=branch)
+        result = PublishingResult(
+            base_sha=base_sha,
+            branch=branch,
+            remote=self.settings.publishing.push_remote,
+        )
         if not options.create_commit:
             return result
 
@@ -118,9 +122,8 @@ class PublishingService:
             raise PermissionError("pull request policy gate is disabled")
 
     def _branch_name(self, report: RunReport) -> str:
-        suffix = re.sub(r"[^a-z0-9-]+", "-", report.run_id.lower()).strip("-")
-        prefix = self.settings.publishing.branch_prefix.rstrip("/")
-        return f"{prefix}/{suffix}"
+        del report
+        return self.settings.publishing.branch_name
 
     @staticmethod
     def _selected(report: RunReport) -> list[PatchCandidate]:

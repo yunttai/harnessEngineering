@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 def utc_now() -> datetime:
@@ -187,6 +187,153 @@ class StageResult(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class SecurityTestCase(BaseModel):
+    """A manifest command with explicit pre/post-patch expectations."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(min_length=1, max_length=128)
+    finding: str = Field(min_length=1, max_length=128)
+    command: list[str] = Field(min_length=1, max_length=64)
+    timeout_seconds: int = Field(default=60, ge=1, le=3600)
+    expected_exit_code: int = 0
+    baseline_expected_exit_code: int | None = None
+
+    @field_validator("command")
+    @classmethod
+    def valid_command(cls, value: list[str]) -> list[str]:
+        if any(not item.strip() or "\x00" in item or len(item) > 4096 for item in value):
+            raise ValueError("security test command entries must be non-empty and NUL-free")
+        return value
+
+
+class ReadinessProbe(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    path: str = "/"
+    expected_status: int = Field(default=200, ge=100, le=599)
+    timeout_seconds: int = Field(default=30, ge=1, le=600)
+    interval_ms: int = Field(default=250, ge=50, le=5000)
+
+    @field_validator("path")
+    @classmethod
+    def relative_http_path(cls, value: str) -> str:
+        if not value.startswith("/") or "://" in value or "\x00" in value:
+            raise ValueError("readiness path must be an absolute URL path")
+        return value
+
+
+class ApplicationSpec(BaseModel):
+    """Application process launched inside the configured Docker sandbox."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    command: list[str] = Field(min_length=1, max_length=64)
+    container_port: int = Field(ge=1, le=65535)
+    readiness: ReadinessProbe = Field(default_factory=ReadinessProbe)
+
+    @field_validator("command")
+    @classmethod
+    def valid_command(cls, value: list[str]) -> list[str]:
+        if any(not item.strip() or "\x00" in item or len(item) > 4096 for item in value):
+            raise ValueError("application command entries must be non-empty and NUL-free")
+        return value
+
+
+class DastTestCase(BaseModel):
+    """Expected scanner delta for a finding-specific dynamic test."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(min_length=1, max_length=128)
+    finding: str = Field(min_length=1, max_length=128)
+    tool: Literal["zap", "nuclei"]
+    path: str = "/"
+    template: str | None = None
+    baseline_min_findings: int = Field(default=1, ge=0)
+    patched_max_findings: int = Field(default=0, ge=0)
+
+    @field_validator("path")
+    @classmethod
+    def relative_target_path(cls, value: str) -> str:
+        if not value.startswith("/") or "://" in value or "\x00" in value:
+            raise ValueError("DAST test path must be an absolute URL path")
+        return value
+
+    @field_validator("template")
+    @classmethod
+    def relative_template_path(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.replace("\\", "/")
+        if (
+            not normalized
+            or normalized.startswith("/")
+            or normalized.startswith("../")
+            or "/../" in normalized
+            or "\x00" in normalized
+        ):
+            raise ValueError("DAST template must be workspace-relative")
+        return normalized
+
+    @model_validator(mode="after")
+    def template_is_nuclei_only(self) -> "DastTestCase":
+        if self.template is not None and self.tool != "nuclei":
+            raise ValueError("custom DAST templates are supported only for nuclei")
+        return self
+
+
+class SecurityTestManifest(BaseModel):
+    """Strict boundary schema for local exploit and Docker DAST verification."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    version: Literal[1] = 1
+    application: ApplicationSpec | None = None
+    tests: list[SecurityTestCase] = Field(default_factory=list, max_length=256)
+    dast: list[DastTestCase] = Field(default_factory=list, max_length=256)
+
+    @field_validator("tests", "dast")
+    @classmethod
+    def unique_ids(cls, value: list[Any]) -> list[Any]:
+        ids = [item.id for item in value]
+        if len(ids) != len(set(ids)):
+            raise ValueError("security manifest ids must be unique within each section")
+        return value
+
+    @field_validator("dast")
+    @classmethod
+    def dast_requires_application(cls, value: list[DastTestCase], info: Any) -> list[DastTestCase]:
+        if value and info.data.get("application") is None:
+            raise ValueError("DAST tests require an application specification")
+        return value
+
+
+class DastFinding(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    fingerprint: str
+    tool: Literal["zap", "nuclei"]
+    rule_id: str
+    severity: Severity
+    url: str
+    message: str
+    evidence: dict[str, Any] = Field(default_factory=dict)
+
+
+class DastScanResult(BaseModel):
+    tool: Literal["zap", "nuclei"]
+    target: str
+    status: StageStatus
+    findings: list[DastFinding] = Field(default_factory=list)
+    command: list[str] = Field(default_factory=list)
+    exit_code: int | None = None
+    duration_ms: int = Field(default=0, ge=0)
+    stdout_excerpt: str = ""
+    stderr_excerpt: str = ""
+    reason: str | None = None
+
+
 class PatchScore(BaseModel):
     security_test: int = Field(ge=0, le=40)
     regression_test: int = Field(ge=0, le=30)
@@ -212,6 +359,7 @@ class VerificationReport(BaseModel):
     functional_test: StageResult
     security_rescan: StageResult
     exploit_test: StageResult
+    exploit_baseline: StageResult | None = None
     score: PatchScore
     eligible: bool
     confidence: str
@@ -266,9 +414,21 @@ class PullRequestResult(BaseModel):
     base: str
 
 
+class GitHubAppSmokeResult(BaseModel):
+    """Non-mutating evidence that a GitHub App installation can serve one repository."""
+
+    status: StageStatus
+    repository: str
+    installation_id: str
+    repository_selection: str
+    permissions: dict[str, str]
+    checked_at: datetime = Field(default_factory=utc_now)
+
+
 class PublishingResult(BaseModel):
     base_sha: str
     branch: str
+    remote: str = "origin"
     commit_sha: str | None = None
     pushed: bool = False
     pull_request: PullRequestResult | None = None
@@ -277,6 +437,8 @@ class PublishingResult(BaseModel):
 class DeploymentPhase(StringEnum):
     STAGING = "STAGING"
     CANARY = "CANARY"
+    OBSERVATION = "OBSERVATION"
+    PROMOTION = "PROMOTION"
     ROLLBACK = "ROLLBACK"
 
 
@@ -289,6 +451,7 @@ class DeploymentResult(BaseModel):
     stdout_excerpt: str = ""
     stderr_excerpt: str = ""
     reason: str | None = None
+    attempt: int | None = Field(default=None, ge=1)
 
 
 class RunMetrics(BaseModel):
@@ -331,6 +494,7 @@ class RunReport(BaseModel):
     findings: list[Finding] = Field(default_factory=list)
     outcomes: list[FindingOutcome] = Field(default_factory=list)
     scanner_errors: list[str] = Field(default_factory=list)
+    publishing: PublishingResult | None = None
     pull_request: PullRequestResult | None = None
     deployments: list[DeploymentResult] = Field(default_factory=list)
     metrics: RunMetrics = Field(default_factory=RunMetrics)

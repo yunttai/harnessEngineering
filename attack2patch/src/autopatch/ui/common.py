@@ -35,7 +35,13 @@ def validate_dast_target(value: str, settings: HarnessSettings) -> str:
     if not settings.dast.enabled:
         raise PermissionError("DAST is disabled")
     parsed = urlsplit(value)
-    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+    if (
+        parsed.scheme not in {"http", "https"}
+        or not parsed.netloc
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.fragment
+    ):
         raise ValueError("DAST target must be an HTTP(S) URL")
     normalized = value.rstrip("/")
     authorized = {target.rstrip("/") for target in settings.dast.authorized_targets}

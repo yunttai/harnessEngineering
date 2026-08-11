@@ -26,6 +26,12 @@ CWE_GUIDANCE: dict[str, dict[str, object]] = {
         "forbidden": ["문자 몇 개만 blacklist", "shell=True 유지"],
         "tests": ["metacharacter payload가 별도 argv 값으로 처리되는지 확인"],
     },
+    "CWE-22": {
+        "root": "공격자 제어 경로가 신뢰 디렉터리 경계 확인 없이 파일 API에 전달됨",
+        "fix": "신뢰 root에 대해 경로를 정규화하고 경계 내부임을 확인하는 안전 API 사용",
+        "forbidden": [".. 문자열만 제거", "절대 경로와 symlink 경계를 확인하지 않음"],
+        "tests": ["상위 디렉터리와 절대 경로 payload가 root 밖 파일에 도달하지 않는지 확인"],
+    },
     "CWE-502": {
         "root": "신뢰할 수 없는 입력이 객체 역직렬화 과정에서 코드/객체 생성을 제어할 수 있음",
         "fix": "안전한 데이터 포맷과 명시적 schema로 교체",

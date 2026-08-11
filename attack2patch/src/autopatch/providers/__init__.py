@@ -1,6 +1,7 @@
 from .contracts import (
     AnalysisProvider,
     DeploymentProvider,
+    DastProvider,
     GitPublisher,
     PatchApplier,
     PatchProvider,
@@ -12,6 +13,7 @@ from .contracts import (
 __all__ = [
     "AnalysisProvider",
     "DeploymentProvider",
+    "DastProvider",
     "GitPublisher",
     "PatchApplier",
     "PatchProvider",

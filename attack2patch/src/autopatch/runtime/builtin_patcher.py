@@ -45,7 +45,8 @@ class BuiltinCwe89Patcher:
         if len(execute.args) != 1 or execute.keywords:
             return []
 
-        query, parameters = self._parameterize(assignment.value)
+        placeholder = self._placeholder_for_tree(tree)
+        query, parameters = self._parameterize(assignment.value, placeholder)
         if not parameters:
             return []
 
@@ -124,9 +125,9 @@ class BuiltinCwe89Patcher:
                 metadata={
                     "query_variable": query_variable,
                     "parameters": parameters,
-                    "placeholder_style": "%s",
+                    "placeholder_style": placeholder,
                     "limitations": [
-                        "Assumes a DB-API driver using %s placeholders",
+                        "Uses SQLite qmark placeholders when sqlite3 is imported; otherwise %s",
                         "Only patches a simple named f-string query followed by execute(query)",
                     ],
                 },
@@ -167,14 +168,28 @@ class BuiltinCwe89Patcher:
         return candidates[0] if len(candidates) == 1 else None
 
     @staticmethod
-    def _parameterize(node: ast.JoinedStr) -> tuple[str, list[str]]:
+    def _placeholder_for_tree(tree: ast.AST) -> str:
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import) and any(
+                alias.name == "sqlite3" for alias in node.names
+            ):
+                return "?"
+            if isinstance(node, ast.ImportFrom) and node.module == "sqlite3":
+                return "?"
+        return "%s"
+
+    @staticmethod
+    def _parameterize(
+        node: ast.JoinedStr,
+        placeholder: str = "%s",
+    ) -> tuple[str, list[str]]:
         query_parts: list[str] = []
         parameters: list[str] = []
         for item in node.values:
             if isinstance(item, ast.Constant) and isinstance(item.value, str):
                 query_parts.append(item.value)
             elif isinstance(item, ast.FormattedValue):
-                query_parts.append("%s")
+                query_parts.append(placeholder)
                 parameters.append(ast.unparse(item.value))
             else:
                 raise ValueError("unsupported f-string component")

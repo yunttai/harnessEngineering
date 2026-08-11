@@ -157,6 +157,8 @@
       "enum": [
         "STAGING",
         "CANARY",
+        "OBSERVATION",
+        "PROMOTION",
         "ROLLBACK"
       ],
       "title": "DeploymentPhase",
@@ -164,6 +166,19 @@
     },
     "DeploymentResult": {
       "properties": {
+        "attempt": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Attempt"
+        },
         "command": {
           "items": {
             "type": "string"
@@ -669,6 +684,57 @@
       "title": "PatchScore",
       "type": "object"
     },
+    "PublishingResult": {
+      "properties": {
+        "base_sha": {
+          "title": "Base Sha",
+          "type": "string"
+        },
+        "branch": {
+          "title": "Branch",
+          "type": "string"
+        },
+        "commit_sha": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Commit Sha"
+        },
+        "pull_request": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PullRequestResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "pushed": {
+          "default": false,
+          "title": "Pushed",
+          "type": "boolean"
+        },
+        "remote": {
+          "default": "origin",
+          "title": "Remote",
+          "type": "string"
+        }
+      },
+      "required": [
+        "base_sha",
+        "branch"
+      ],
+      "title": "PublishingResult",
+      "type": "object"
+    },
     "PullRequestResult": {
       "properties": {
         "base": {
@@ -1031,6 +1097,17 @@
           "title": "Eligible",
           "type": "boolean"
         },
+        "exploit_baseline": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StageResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "exploit_test": {
           "$ref": "#/$defs/StageResult"
         },
@@ -1145,6 +1222,17 @@
       },
       "title": "Outcomes",
       "type": "array"
+    },
+    "publishing": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PublishingResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "pull_request": {
       "anyOf": [

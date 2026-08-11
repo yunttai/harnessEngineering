@@ -69,6 +69,14 @@ bash scripts/doc-gardening.sh
 `attack2patch/scripts/check.sh`를 호출하여 제품의 아키텍처, 설정, 스키마, compile과 테스트를
 검증합니다.
 
+MVP 3의 Docker 격리와 DAST는 기본 비활성입니다. 설정의 sandbox/DAST autonomy와 CLI의
+`--sandbox docker --execute-dast`를 함께 지정해야 하며, 배포도 `deploy --approve`와 독립
+정책 게이트를 모두 요구합니다.
+
+운영 하드닝은 multi-architecture manifest digest로 고정한 Docker 이미지를 amd64/arm64
+GitHub Actions matrix에서 검증합니다. 결정적 Python 패처는 CWE-89 외에도 안전한 AST shape가
+확정되는 좁은 CWE-22, CWE-78, CWE-502 패턴을 지원합니다.
+
 ## 변경 위치 선택
 
 | 변경 목적 | 작업 위치 |

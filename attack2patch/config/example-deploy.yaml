@@ -1,0 +1,38 @@
+version: 1
+project_name: Attack2Patch Example Deployment
+artifact_root: .autopatch/runs
+
+scope:
+  local_paths_only: true
+  authorized_targets: []
+
+autonomy:
+  apply_patch: true
+  execute_tests: true
+  create_branch: true
+  create_commit: true
+  push_branch: true
+  create_pull_request: false
+  execute_dast: false
+  deploy: true
+  max_patch_attempts: 3
+  require_clean_git_tree: true
+
+deployment:
+  enabled: true
+  staging_command: [python, deploy.py, staging]
+  canary_command: [python, deploy.py, canary]
+  observation_command: [python, deploy.py, observe]
+  promotion_command: [python, deploy.py, promote]
+  rollback_command: [python, deploy.py, rollback]
+  timeout_seconds: 300
+  observation_window_seconds: 10
+  observation_interval_seconds: 2
+  minimum_observation_passes: 3
+  max_observation_attempts: 6
+  rollback_runbook: runbooks/rollback.md
+
+logging:
+  level: INFO
+  redact_patterns:
+    - '(?i)(api[_-]?key|token|secret|password)\s*[:=]\s*[^\s]+'

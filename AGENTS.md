@@ -66,7 +66,9 @@ attack2patch/                  독립 실행 제품
 ## 작업 규약
 
 - **허가 범위**: 사용자가 소유하거나 명시적으로 허가받은 로컬 저장소만 처리합니다.
-- **기본 dry-run**: 원본 수정, Git 작업, PR, 배포는 각각 명시적으로 허용해야 합니다.
+- **기본 dry-run**: `scan`/`run`은 원본을 바꾸지 않습니다. `publish` 호출은 VERIFIED 패치의
+  적용·`Attack2patch` 브랜치·commit·push에 대한 명시적 승인으로 취급하며 PR과 배포는 별도
+  옵션과 게이트를 요구합니다.
 - **경계 파싱**: Scanner/LLM/프로세스 출력은 Pydantic 스키마로 파싱한 뒤 사용합니다.
 - **최소 패치**: 전체 파일 재생성보다 위치가 고정된 `TextEdit`와 unified diff를 사용합니다.
 - **검증 우선**: build, regression, re-scan, exploit mitigation 중 실패한 항목이 있으면

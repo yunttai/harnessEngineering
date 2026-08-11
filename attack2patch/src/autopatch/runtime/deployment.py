@@ -8,7 +8,7 @@ from autopatch.types import DeploymentPhase, DeploymentResult, StageStatus
 
 
 class CommandDeploymentProvider:
-    """Explicit argv-based staging/canary/rollback provider; disabled by default."""
+    """Explicit argv-based staging/canary/observation/promotion/rollback provider."""
 
     name = "command-deployment"
 
@@ -33,6 +33,8 @@ class CommandDeploymentProvider:
         command = {
             DeploymentPhase.STAGING: self.settings.staging_command,
             DeploymentPhase.CANARY: self.settings.canary_command,
+            DeploymentPhase.OBSERVATION: self.settings.observation_command,
+            DeploymentPhase.PROMOTION: self.settings.promotion_command,
             DeploymentPhase.ROLLBACK: self.settings.rollback_command,
         }[phase]
         if not command:

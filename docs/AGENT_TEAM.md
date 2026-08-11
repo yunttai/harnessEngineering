@@ -14,7 +14,7 @@
 | reviewer | subagent | 금지 | 요구사항·evidence 독립 검토 |
 | security | subagent | 금지 | 새 취약점·우회 독립 검토 |
 | committer | subagent | 금지 | 승인된 변경의 branch/commit/PR |
-| deployer | subagent | 금지 | staging/canary/rollback |
+| deployer | subagent | 금지 | staging/canary/observation/promotion/rollback |
 
 ## 협업 루프
 

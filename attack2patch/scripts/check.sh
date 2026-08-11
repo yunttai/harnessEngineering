@@ -35,6 +35,7 @@ run() {
 
 run "architecture" "$PYTHON_BIN" scripts/check-architecture.py
 run "configuration" "$PYTHON_BIN" scripts/check-config.py
+run "production policy" "$PYTHON_BIN" scripts/check-production-policy.py
 run "generated schemas" "$PYTHON_BIN" scripts/generate-schemas.py --check
 run "secret scan" "$PYTHON_BIN" scripts/check-secrets.py
 run "Python compile" "$PYTHON_BIN" -m compileall -q src tests examples scripts

@@ -44,6 +44,22 @@ def test_api_refuses_test_execution_without_config_gate(
     assert response.status_code == 403
 
 
+def test_api_refuses_dast_without_independent_config_gate(
+    vulnerable_project: Path,
+    repository_root: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv(
+        "AUTOPATCH_CONFIG",
+        str(repository_root / "config" / "harness.yaml"),
+    )
+    response = TestClient(app).post(
+        "/v1/run",
+        json={"target": str(vulnerable_project), "execute_dast": True},
+    )
+    assert response.status_code == 403
+
+
 def test_api_exposes_persisted_run_status(
     vulnerable_project: Path,
     repository_root: Path,

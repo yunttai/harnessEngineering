@@ -1,0 +1,156 @@
+version: 1
+project_name: Attack2Patch
+artifact_root: .autopatch/runs
+
+scope:
+  local_paths_only: true
+  authorized_targets: []
+  excluded_directories:
+    - .git
+    - .venv
+    - node_modules
+    - .autopatch
+    - dist
+    - build
+  max_file_bytes: 1048576
+
+autonomy:
+  apply_patch: true
+  execute_tests: true
+  create_branch: true
+  create_commit: true
+  push_branch: true
+  create_pull_request: false
+  execute_dast: true
+  deploy: false
+  max_patch_attempts: 3
+  require_clean_git_tree: true
+
+detection:
+  fail_on_required_scanner_error: true
+  scanners:
+    - name: builtin-python
+      enabled: true
+      required: true
+      timeout_seconds: 60
+    - name: semgrep
+      enabled: true
+      required: true
+      timeout_seconds: 300
+      config: rules/semgrep
+      execution: docker
+      docker_image: semgrep/semgrep@sha256:207983631beecdbe7fa29196c7f4a7a5f29033933cdb76c687ce4a672e07618d
+      docker_network: none
+    - name: trivy
+      enabled: true
+      required: true
+      timeout_seconds: 300
+      execution: docker
+      docker_image: aquasec/trivy@sha256:cffe3f5161a47a6823fbd23d985795b3ed72a4c806da4c4df16266c02accdd6f
+      docker_network: bridge
+    - name: gitleaks
+      enabled: true
+      required: true
+      timeout_seconds: 300
+      execution: docker
+      docker_image: ghcr.io/gitleaks/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+      docker_network: none
+
+verification:
+  build_timeout_seconds: 120
+  test_timeout_seconds: 300
+  scanner_timeout_seconds: 300
+  exploit_timeout_seconds: 300
+  execute_project_tests: true
+  execute_project_security_tests: true
+  project_test_command: [python, -m, unittest, discover, -s, tests, -q]
+  require_build_pass: true
+  require_regression_not_failed: true
+  require_security_rescan_pass: true
+  require_exploit_not_failed: true
+  require_differential_exploit: true
+
+sandbox:
+  provider: docker
+  docker_executable: docker
+  image: python@sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36
+  allow_image_pull: false
+  cpu_limit: 1.0
+  memory_mb: 1024
+  pids_limit: 256
+  network_mode: none
+  read_only_rootfs: true
+  tmpfs_mb: 512
+  user: null
+  cleanup_timeout_seconds: 30
+
+patching:
+  supported_cwes: [CWE-22, CWE-78, CWE-89, CWE-502]
+  max_candidates_per_finding: 3
+  max_changed_lines: 80
+  prefer_minimal_diff: true
+
+llm:
+  enabled: true
+  provider: codex
+  executable: null
+  model: null
+  timeout_seconds: 300
+  max_prompt_chars: 100000
+  max_output_chars: 200000
+  use_for_analysis: false
+  use_for_patching: true
+
+publishing:
+  branch_name: Attack2patch
+  draft_pull_request: true
+  push_remote: origin
+  github_app:
+    enabled: false
+    repository: null
+    base_branch: main
+    api_url: https://api.github.com
+    web_url: https://github.com
+    app_id_env: GITHUB_APP_ID
+    installation_id_env: GITHUB_APP_INSTALLATION_ID
+    private_key_env: GITHUB_APP_PRIVATE_KEY
+    required_permissions:
+      contents: write
+      pull_requests: write
+    timeout_seconds: 30
+
+dast:
+  enabled: true
+  authorized_targets: []
+  allow_sandbox_loopback: true
+  zap:
+    enabled: true
+    executable: zap-baseline.py
+    docker_image: ghcr.io/zaproxy/zaproxy@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef
+    timeout_seconds: 300
+    extra_args: []
+  nuclei:
+    enabled: true
+    executable: nuclei
+    docker_image: projectdiscovery/nuclei@sha256:582d5546902e67052097cb2d07296c642d50a1afc5e44623cb038845df9a32eb
+    timeout_seconds: 300
+    extra_args: []
+
+deployment:
+  enabled: false
+  staging_command: []
+  canary_command: []
+  observation_command: []
+  promotion_command: []
+  rollback_command: []
+  timeout_seconds: 300
+  observation_window_seconds: 900
+  observation_interval_seconds: 30
+  minimum_observation_passes: 3
+  max_observation_attempts: 60
+  rollback_runbook: runbooks/rollback.md
+
+logging:
+  level: INFO
+  redact_patterns:
+    - '(?i)(api[_-]?key|token|secret|password)\s*[:=]\s*[^\s]+'

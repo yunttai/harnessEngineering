@@ -17,6 +17,8 @@ Finding → AnalysisResult → PatchCandidate[]
 - [x] unified diff 생성
 - [x] 원본은 dry-run에서 불변
 - [x] 임시 복사본 검증
+- [x] 선택적 Docker 격리 검증
+- [x] baseline/patched exploit와 DAST differential evidence
 - [x] 필수 게이트와 점수 분리
 - [x] apply 시 hash 재검증
 - [x] 지원 불가 패턴은 사람 검토

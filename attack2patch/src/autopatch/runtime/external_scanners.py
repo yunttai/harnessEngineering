@@ -3,17 +3,19 @@ from __future__ import annotations
 import json
 import re
 import shutil
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
+from autopatch.config import SandboxSettings
 from autopatch.runtime.command import CommandRunner
+from autopatch.runtime.scanner_container import DockerScannerRunner
 from autopatch.service.normalization import (
     finding_id_from_fingerprint,
     make_fingerprint,
     normalize_relative_path,
 )
 from autopatch.types import Evidence, Finding, Severity
-
 
 _SEVERITIES = {
     "CRITICAL": Severity.CRITICAL,
@@ -247,32 +249,163 @@ class JsonCommandScanner:
         return self.parser(target.resolve(), payload)
 
 
-class TrivyScanner(JsonCommandScanner):
-    def __init__(self, *, required: bool = False, timeout_seconds: int = 180) -> None:
-        super().__init__(
-            name="trivy",
-            argv=["trivy", "fs", "--format", "json", "--quiet", "."],
-            parser=parse_trivy,
-            required=required,
-            timeout_seconds=timeout_seconds,
+class TrivyScanner:
+    name = "trivy"
+
+    def __init__(
+        self,
+        *,
+        required: bool = False,
+        timeout_seconds: int = 180,
+        execution: str = "auto",
+        docker_image: str | None = None,
+        docker_network: str = "bridge",
+        cache_dir: Path | None = None,
+        sandbox_settings: SandboxSettings | None = None,
+        runner: CommandRunner | None = None,
+        docker_runner: DockerScannerRunner | None = None,
+    ) -> None:
+        self.required = required
+        self.timeout_seconds = timeout_seconds
+        self.execution = execution
+        self.docker_image = docker_image
+        self.docker_network = docker_network
+        self.cache_dir = (cache_dir or Path(".autopatch/cache/trivy")).resolve()
+        self.runner = runner or CommandRunner()
+        self.docker_runner = docker_runner or DockerScannerRunner(
+            sandbox_settings or SandboxSettings(),
+            runner=self.runner,
         )
 
+    def _native_available(self) -> bool:
+        return self.execution in {"auto", "native"} and shutil.which("trivy") is not None
 
-class GitleaksScanner(JsonCommandScanner):
-    def __init__(self, *, required: bool = False, timeout_seconds: int = 180) -> None:
-        super().__init__(
-            name="gitleaks",
-            argv=[
-                "gitleaks",
-                "detect",
-                "--no-git",
-                "--report-format",
-                "json",
-                "--report-path",
-                "-",
-            ],
-            parser=parse_gitleaks,
-            required=required,
-            timeout_seconds=timeout_seconds,
-            success_exit_codes={0, 1},
+    def _docker_available(self) -> bool:
+        return (
+            self.execution in {"auto", "docker"}
+            and self.docker_image is not None
+            and self.docker_runner.available()
         )
+
+    def available(self) -> bool:
+        return self._native_available() or self._docker_available()
+
+    def scan(self, target: Path) -> list[Finding]:
+        target = target.resolve()
+        if self._native_available():
+            result = self.runner.run(
+                ["trivy", "fs", "--format", "json", "--quiet", "."],
+                cwd=target,
+                timeout_seconds=self.timeout_seconds,
+            )
+        elif self._docker_available():
+            assert self.docker_image is not None
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+            result = self.docker_runner.run(
+                image=self.docker_image,
+                argv=[
+                    "fs",
+                    "--format",
+                    "json",
+                    "--quiet",
+                    "--cache-dir",
+                    "/trivy-cache",
+                    ".",
+                ],
+                target=target,
+                timeout_seconds=self.timeout_seconds,
+                network=self.docker_network,
+                mounts=[(self.cache_dir, "/trivy-cache", False)],
+            )
+        else:
+            raise RuntimeError("Trivy is unavailable for the configured execution mode")
+        if result.timed_out:
+            raise TimeoutError(f"trivy timed out after {self.timeout_seconds}s")
+        if result.exit_code != 0:
+            raise RuntimeError(
+                f"trivy failed with exit code {result.exit_code}: {result.stderr}"
+            )
+        try:
+            payload = json.loads(result.stdout or "null")
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"invalid trivy JSON: {exc}") from exc
+        return parse_trivy(target, payload)
+
+
+class GitleaksScanner:
+    name = "gitleaks"
+
+    def __init__(
+        self,
+        *,
+        required: bool = False,
+        timeout_seconds: int = 180,
+        execution: str = "auto",
+        docker_image: str | None = None,
+        docker_network: str = "none",
+        sandbox_settings: SandboxSettings | None = None,
+        runner: CommandRunner | None = None,
+        docker_runner: DockerScannerRunner | None = None,
+    ) -> None:
+        self.required = required
+        self.timeout_seconds = timeout_seconds
+        self.execution = execution
+        self.docker_image = docker_image
+        self.docker_network = docker_network
+        self.runner = runner or CommandRunner()
+        self.docker_runner = docker_runner or DockerScannerRunner(
+            sandbox_settings or SandboxSettings(),
+            runner=self.runner,
+        )
+
+    def _native_available(self) -> bool:
+        return self.execution in {"auto", "native"} and shutil.which("gitleaks") is not None
+
+    def _docker_available(self) -> bool:
+        return (
+            self.execution in {"auto", "docker"}
+            and self.docker_image is not None
+            and self.docker_runner.available()
+        )
+
+    def available(self) -> bool:
+        return self._native_available() or self._docker_available()
+
+    def scan(self, target: Path) -> list[Finding]:
+        target = target.resolve()
+        arguments = [
+            "detect",
+            "--no-git",
+            "--report-format",
+            "json",
+            "--report-path",
+            "-",
+        ]
+        if self._native_available():
+            result = self.runner.run(
+                ["gitleaks", *arguments],
+                cwd=target,
+                timeout_seconds=self.timeout_seconds,
+            )
+        elif self._docker_available():
+            assert self.docker_image is not None
+            result = self.docker_runner.run(
+                image=self.docker_image,
+                argv=[*arguments, "--source", "/src"],
+                target=target,
+                timeout_seconds=self.timeout_seconds,
+                network=self.docker_network,
+            )
+        else:
+            raise RuntimeError("Gitleaks is unavailable for the configured execution mode")
+        if result.timed_out:
+            raise TimeoutError(f"gitleaks timed out after {self.timeout_seconds}s")
+        if result.exit_code not in {0, 1}:
+            raise RuntimeError(
+                f"gitleaks failed with exit code {result.exit_code}: {result.stderr}"
+            )
+        try:
+            payload = json.loads(result.stdout or "[]")
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"invalid gitleaks JSON: {exc}") from exc
+        return parse_gitleaks(target, payload)

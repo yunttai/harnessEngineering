@@ -15,12 +15,13 @@ scope:
   max_file_bytes: 1048576
 
 autonomy:
-  apply_patch: false
+  apply_patch: true
   execute_tests: false
-  create_branch: false
-  create_commit: false
-  push_branch: false
+  create_branch: true
+  create_commit: true
+  push_branch: true
   create_pull_request: false
+  execute_dast: false
   deploy: false
   max_patch_attempts: 3
   require_clean_git_tree: true
@@ -57,10 +58,28 @@ verification:
   require_regression_not_failed: true
   require_security_rescan_pass: true
   require_exploit_not_failed: true
+  require_differential_exploit: false
+
+sandbox:
+  provider: local-copy
+  docker_executable: docker
+  image: python@sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36
+  allow_image_pull: false
+  cpu_limit: 1.0
+  memory_mb: 512
+  pids_limit: 256
+  network_mode: none
+  read_only_rootfs: true
+  tmpfs_mb: 128
+  user: null
+  cleanup_timeout_seconds: 30
 
 patching:
   supported_cwes:
+    - CWE-22
+    - CWE-78
     - CWE-89
+    - CWE-502
   max_candidates_per_finding: 3
   max_changed_lines: 80
   prefer_minimal_diff: true
@@ -77,7 +96,7 @@ llm:
   use_for_patching: true
 
 publishing:
-  branch_prefix: attack2patch/security
+  branch_name: Attack2patch
   draft_pull_request: true
   push_remote: origin
   github_app:
@@ -89,18 +108,40 @@ publishing:
     app_id_env: GITHUB_APP_ID
     installation_id_env: GITHUB_APP_INSTALLATION_ID
     private_key_env: GITHUB_APP_PRIVATE_KEY
+    required_permissions:
+      contents: write
+      pull_requests: write
     timeout_seconds: 30
 
 dast:
   enabled: false
   authorized_targets: []
+  allow_sandbox_loopback: false
+  zap:
+    enabled: false
+    executable: zap-baseline.py
+    docker_image: ghcr.io/zaproxy/zaproxy@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef
+    timeout_seconds: 300
+    extra_args: []
+  nuclei:
+    enabled: false
+    executable: nuclei
+    docker_image: projectdiscovery/nuclei@sha256:582d5546902e67052097cb2d07296c642d50a1afc5e44623cb038845df9a32eb
+    timeout_seconds: 300
+    extra_args: []
 
 deployment:
   enabled: false
   staging_command: []
   canary_command: []
+  observation_command: []
+  promotion_command: []
   rollback_command: []
   timeout_seconds: 300
+  observation_window_seconds: 900
+  observation_interval_seconds: 30
+  minimum_observation_passes: 3
+  max_observation_attempts: 60
   rollback_runbook: runbooks/rollback.md
 
 logging:

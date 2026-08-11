@@ -4,16 +4,16 @@ import hashlib
 import json
 import shutil
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 from urllib.parse import urlsplit
 from uuid import uuid4
 
 from autopatch.config import DastSettings, DastToolSettings, SandboxSettings
 from autopatch.runtime.command import CommandResult, CommandRunner
-from autopatch.runtime.sandbox import docker_security_flags
+from autopatch.runtime.sandbox import docker_security_flags, prepare_container_workspace
 from autopatch.types import DastFinding, DastScanResult, Severity, StageStatus
-
 
 _SEVERITIES = {
     "critical": Severity.CRITICAL,
@@ -361,6 +361,7 @@ class ZapDastProvider(_DastProviderBase):
             raise RuntimeError(f"ZAP executable is unavailable: {self.tool.executable}")
         with tempfile.TemporaryDirectory(prefix="autopatch-zap-") as temp:
             directory = Path(temp)
+            prepare_container_workspace(directory)
             report = directory / "zap-report.json"
             zap_home_mb = max(self.sandbox_settings.tmpfs_mb, 512)
             inner = [

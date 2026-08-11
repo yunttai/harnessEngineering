@@ -163,6 +163,7 @@ class _DockerDastRunner:
         stdout = ""
         if command[1:3] == ["run", "--rm"]:
             if "zap-baseline.py" in command:
+                assert cwd.stat().st_mode & 0o007 == 0o007
                 (cwd / "zap-report.json").write_text('{"site": []}', encoding="utf-8")
             else:
                 stdout = json.dumps(

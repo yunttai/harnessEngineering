@@ -61,6 +61,7 @@ attack2patch github-app-smoke --repository OWNER/REPOSITORY
 - 2026-08-12: live SQLi 요청 `count=0`, product API container `/health` 200 확인
 - 2026-08-12: rootless Linux Docker에서 임시 workspace 권한 문제 재현·수정 후 smoke 통과
 - 2026-08-12: 전체 하네스 72 tests, architecture/config/policy/schema/link/secret 검사 통과
+- 2026-08-12: GitHub Actions run 31538928951에서 Linux/Windows/macOS와 Docker amd64/arm64 성공
 
 ## 결정 기록
 

@@ -22,8 +22,8 @@
 | Git branch/commit/push | IMPLEMENTED | publish 기본 `Attack2patch` branch, selected-file commit, origin push | worktree 기반 원자적 실패 복구 |
 | Pull Request | IMPLEMENTED | GitHub App installation/repository/permission smoke와 draft PR | 실제 repository secret으로 수동 smoke 실행 |
 | Staging/Canary/Production | IMPLEMENTED | pushed commit gate, 실제 Docker staging→canary→bounded observation→production promotion, 첫 실패/timeout/한도 소진 rollback | 환경별 command/runbook 검토 |
-| Docker security boundary | IMPLEMENTED (opt-in) | digest-pinned read-only 격리와 cleanup; 로컬 amd64 smoke 및 amd64/arm64 CI matrix | remote arm64 matrix 실행 evidence |
-| DAST | IMPLEMENTED (opt-in) | digest-pinned ZAP/Nuclei, exact authorization와 differential | CI matrix 실행과 exploit corpus 확대 |
+| Docker security boundary | IMPLEMENTED (opt-in) | digest-pinned read-only 격리와 cleanup; 로컬 Linux smoke 및 원격 amd64/arm64 CI 성공 | remote runner 정기 회귀 감시 |
+| DAST | IMPLEMENTED (opt-in) | digest-pinned ZAP/Nuclei, exact authorization와 differential; amd64/arm64 CI 성공 | exploit corpus 확대 |
 | Aggregate evaluation metrics | IMPLEMENTED | RunMetrics 집계 | benchmark runner/dashboard |
 
 ## 현재 완료 기준
@@ -37,8 +37,7 @@
 - 실제 SQLite exploit과 Nuclei finding이 baseline 1건→patched 0건임을 evidence로 기록
 - pushed `Attack2patch` commit만 staging/canary/관측/promotion에 진입
 
-## Production 전 필수 선행 작업
+## 조직별 운영 환경 연결 시 필요한 작업
 
-1. GitHub Actions amd64/arm64 matrix의 원격 실행 결과 확인
-2. draft PR 기능을 사용할 경우에만 repository secret으로 GitHub App smoke 수행
-3. 실제 조직의 production endpoint/관측 backend에 맞춘 command와 rollback runbook 승인
+1. draft PR 기능을 사용할 경우에만 repository secret으로 GitHub App smoke 수행
+2. 실제 조직의 production endpoint/관측 backend에 맞춘 command와 rollback runbook 승인

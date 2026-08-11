@@ -13,7 +13,11 @@ from autopatch.providers import DastProvider
 from autopatch.runtime.command import CommandResult, CommandRunner
 from autopatch.runtime.manifest import load_security_test_manifest
 from autopatch.runtime.patch_apply import SafePatchApplier
-from autopatch.runtime.sandbox import DockerApplicationRunner, DockerCommandRunner
+from autopatch.runtime.sandbox import (
+    DockerApplicationRunner,
+    DockerCommandRunner,
+    prepare_container_workspace,
+)
 from autopatch.service.detection import DetectionService
 from autopatch.service.scoring import score_candidate
 from autopatch.types import (
@@ -761,6 +765,10 @@ class DockerSandboxVerifier(LocalCopyVerifier):
             settings=self.sandbox_settings,
             runner=self.runner,
         )
+
+    def _copy_target(self, source: Path, destination: Path) -> None:
+        super()._copy_target(source, destination)
+        prepare_container_workspace(destination)
 
     def _has_dynamic_dast(self) -> bool:
         return self.execute_dast

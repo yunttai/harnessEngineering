@@ -59,7 +59,8 @@ attack2patch github-app-smoke --repository OWNER/REPOSITORY
 - 2026-08-12: 캐시된 ChatGPT 로그인으로 Codex CLI structured patch 후보 실제 생성
 - 2026-08-12: `Attack2patch` commit push 후 staging/canary 6회 관측/production promotion 완료
 - 2026-08-12: live SQLi 요청 `count=0`, product API container `/health` 200 확인
-- 2026-08-12: 전체 하네스 71 tests, architecture/config/policy/schema/link/secret 검사 통과
+- 2026-08-12: rootless Linux Docker에서 임시 workspace 권한 문제 재현·수정 후 smoke 통과
+- 2026-08-12: 전체 하네스 72 tests, architecture/config/policy/schema/link/secret 검사 통과
 
 ## 결정 기록
 

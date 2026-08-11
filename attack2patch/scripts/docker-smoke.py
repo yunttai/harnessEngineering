@@ -11,7 +11,11 @@ from pathlib import Path
 from autopatch.config import DastSettings, DastToolSettings, SandboxSettings, load_settings
 from autopatch.runtime.dast import NucleiDastProvider, ZapDastProvider
 from autopatch.runtime.factory import build_detection_service
-from autopatch.runtime.sandbox import DockerApplicationRunner, DockerCommandRunner
+from autopatch.runtime.sandbox import (
+    DockerApplicationRunner,
+    DockerCommandRunner,
+    prepare_container_workspace,
+)
 from autopatch.types import ApplicationSpec, ReadinessProbe, StageStatus
 
 _APP = '''from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -150,6 +154,8 @@ def run_smoke(expected_arch: str) -> dict[str, object]:
             )
         shutil.copytree(source, baseline)
         shutil.copytree(source, patched)
+        prepare_container_workspace(baseline)
+        prepare_container_workspace(patched)
         (patched / "app.py").write_text(
             _APP.replace("vulnerable-marker", "safe-marker"),
             encoding="utf-8",

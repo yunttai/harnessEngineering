@@ -13,6 +13,7 @@ from autopatch.runtime.sandbox import (
     ApplicationSession,
     DockerApplicationRunner,
     DockerCommandRunner,
+    prepare_container_workspace,
 )
 from autopatch.runtime.verifier import DockerSandboxVerifier
 from autopatch.service.detection import DetectionService
@@ -38,6 +39,23 @@ class _DockerRunner:
             stderr="",
             duration_ms=1,
         )
+
+
+def test_container_workspace_is_writable_for_rootless_uid(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    nested = workspace / "nested"
+    nested.mkdir(parents=True)
+    source = nested / "app.py"
+    source.write_text("print('ok')\n", encoding="utf-8")
+    workspace.chmod(0o700)
+    nested.chmod(0o755)
+    source.chmod(0o644)
+
+    prepare_container_workspace(workspace)
+
+    assert workspace.stat().st_mode & 0o007 == 0o007
+    assert nested.stat().st_mode & 0o007 == 0o007
+    assert source.stat().st_mode & 0o006 == 0o006
 
 
 def test_docker_command_runner_enforces_resource_and_network_boundaries(tmp_path: Path) -> None:

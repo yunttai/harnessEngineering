@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+import stat
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -12,6 +13,17 @@ from uuid import uuid4
 from autopatch.config import SandboxSettings
 from autopatch.runtime.command import CommandResult, CommandRunner
 from autopatch.types import ApplicationSpec
+
+
+def prepare_container_workspace(workspace: Path) -> None:
+    """Make only an ephemeral copied workspace writable across rootless Docker UIDs."""
+
+    workspace = workspace.resolve()
+    for path in [workspace, *workspace.rglob("*")]:
+        if path.is_symlink():
+            continue
+        mode = stat.S_IMODE(path.stat().st_mode)
+        path.chmod(mode | (0o777 if path.is_dir() else 0o666))
 
 
 def _container_name(prefix: str) -> str:

@@ -64,21 +64,23 @@ class PatchingSettings(BaseModel):
 
 class LlmSettings(BaseModel):
     enabled: bool = False
-    provider: Literal["openai-responses"] = "openai-responses"
-    model: str = "gpt-5.6"
-    base_url: str = "https://api.openai.com/v1"
-    api_key_env: str = "OPENAI_API_KEY"
+    provider: Literal["codex", "opencode", "claude"] = "codex"
+    executable: str | None = None
+    model: str | None = None
     timeout_seconds: int = Field(default=120, ge=1)
-    max_output_tokens: int = Field(default=4096, ge=256, le=32768)
+    max_prompt_chars: int = Field(default=100_000, ge=1_000, le=1_000_000)
+    max_output_chars: int = Field(default=200_000, ge=10_000, le=2_000_000)
     use_for_analysis: bool = False
     use_for_patching: bool = True
 
-    @field_validator("base_url")
+    @field_validator("executable", "model")
     @classmethod
-    def valid_base_url(cls, value: str) -> str:
-        normalized = value.rstrip("/")
-        if not normalized.startswith("https://"):
-            raise ValueError("llm.base_url must use HTTPS")
+    def valid_optional_cli_value(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not normalized or "\x00" in normalized:
+            raise ValueError("LLM CLI executable/model must be a non-empty value without NUL")
         return normalized
 
 
@@ -136,7 +138,7 @@ class DeploymentSettings(BaseModel):
     canary_command: list[str] = Field(default_factory=list)
     rollback_command: list[str] = Field(default_factory=list)
     timeout_seconds: int = Field(default=300, ge=1)
-    rollback_runbook: str = "docs/references/rollback-runbook.md"
+    rollback_runbook: str = "runbooks/rollback.md"
 
     @model_validator(mode="after")
     def enabled_requires_all_phases(self) -> "DeploymentSettings":

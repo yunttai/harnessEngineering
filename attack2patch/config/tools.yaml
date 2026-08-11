@@ -77,6 +77,37 @@ tools:
       - .
     network: false
 
+  codex:
+    category: llm
+    command:
+      - codex
+      - exec
+    parser: strict-json-schema
+    network: true
+    enabled_by_default: false
+
+  opencode:
+    category: llm
+    command:
+      - opencode
+      - run
+      - --format
+      - json
+    parser: jsonl-events
+    network: true
+    enabled_by_default: false
+
+  claude:
+    category: llm
+    command:
+      - claude
+      - --print
+      - --output-format
+      - json
+    parser: structured-output
+    network: true
+    enabled_by_default: false
+
   zap:
     category: dast
     enabled_by_default: false

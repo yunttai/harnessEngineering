@@ -3,7 +3,6 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
-export PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
 
 if [[ -z "${PYTHON_BIN:-}" && -x "$ROOT/.venv/Scripts/python.exe" ]]; then
   PYTHON_BIN="$ROOT/.venv/Scripts/python.exe"
@@ -30,12 +29,8 @@ run() {
 
 run "repository map" bash scripts/check-agents-map.sh
 run "Markdown links" "$PYTHON_BIN" scripts/check-links.py
-run "architecture" "$PYTHON_BIN" scripts/check-architecture.py
-run "configuration" "$PYTHON_BIN" scripts/check-config.py
-run "generated schemas" "$PYTHON_BIN" scripts/generate-schemas.py --check
-run "secret scan" "$PYTHON_BIN" scripts/check-secrets.py
-run "Python compile" "$PYTHON_BIN" -m compileall -q src tests examples scripts
-run "unit/integration tests" "$PYTHON_BIN" -m pytest -q
+run "repository secret scan" "$PYTHON_BIN" scripts/check-secrets.py
+run "Attack2Patch product" env PYTHON_BIN="$PYTHON_BIN" bash attack2patch/scripts/check.sh
 
 echo
-echo "all harness checks passed"
+echo "all engineering harness and product checks passed"

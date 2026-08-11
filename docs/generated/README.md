@@ -8,7 +8,8 @@
 재생성:
 
 ```bash
+cd attack2patch
 PYTHONPATH=src python scripts/generate-schemas.py
 ```
 
-JSON Schema 원본은 루트 `schemas/`에 저장됩니다.
+JSON Schema 원본은 `attack2patch/schemas/`에 저장됩니다.

@@ -98,7 +98,7 @@ MVP에서 다음은 기본 자동 완료 범위가 아닙니다.
 - [x] 구조적 exploit mitigation 확인
 - [x] unified diff 출력
 - [x] 하네스 자체 pytest
-- [x] 실제 LLM structured output provider
+- [x] Codex/OpenCode/Claude CLI structured output provider
 - [x] GitHub App PR provider
 
 ## 8. 상태 및 실패 상태

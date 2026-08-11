@@ -7,10 +7,10 @@ from autopatch.config import HarnessSettings
 from autopatch.repo import ArtifactStore
 from autopatch.runtime.builtin_patcher import BuiltinCwe89Patcher
 from autopatch.runtime.builtin_scanner import BuiltinPythonScanner
+from autopatch.runtime.cli_llm_provider import CliLlmProvider
 from autopatch.runtime.external_scanners import GitleaksScanner, TrivyScanner
 from autopatch.runtime.git_publisher import LocalGitPublisher
 from autopatch.runtime.github_publisher import GitHubAppPullRequestPublisher
-from autopatch.runtime.openai_provider import OpenAIResponsesProvider
 from autopatch.runtime.patch_apply import SafePatchApplier
 from autopatch.runtime.semgrep_scanner import SemgrepScanner
 from autopatch.runtime.verifier import LocalCopyVerifier
@@ -100,10 +100,10 @@ def build_orchestrator(
     analyzer = RuleBasedAnalyzer()
     patch_providers = [BuiltinCwe89Patcher()]
     if settings.llm.enabled:
-        llm = OpenAIResponsesProvider(settings.llm)
+        llm = CliLlmProvider(settings.llm)
         if not llm.available():
             raise RuntimeError(
-                f"llm.enabled requires credential environment variable {settings.llm.api_key_env}"
+                f"llm.enabled requires installed CLI executable: {llm.executable_name}"
             )
         if settings.llm.use_for_analysis:
             analyzer = llm

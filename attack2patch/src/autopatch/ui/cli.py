@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal, cast
 
 import typer
 
@@ -97,6 +97,20 @@ def run(
             help="Execute autopatch-security-tests.yaml commands; only for trusted targets",
         ),
     ] = False,
+    llm_cli: Annotated[
+        str | None,
+        typer.Option(
+            "--llm-cli",
+            help="Enable an authenticated local LLM CLI: codex, opencode, or claude",
+        ),
+    ] = None,
+    llm_model: Annotated[
+        str | None,
+        typer.Option(
+            "--llm-model",
+            help="Optional model override passed to the selected LLM CLI",
+        ),
+    ] = None,
     json_output: Annotated[
         bool,
         typer.Option("--json", help="Print complete RunReport JSON"),
@@ -105,6 +119,19 @@ def run(
     """Execute detection, analysis, patch generation and verification."""
     config_path = _config_path(config)
     settings = load_settings(config_path)
+    if llm_cli is not None:
+        normalized = llm_cli.strip().lower()
+        if normalized not in {"codex", "opencode", "claude"}:
+            raise typer.BadParameter("--llm-cli must be codex, opencode, or claude")
+        settings.llm.enabled = True
+        settings.llm.provider = cast(
+            Literal["codex", "opencode", "claude"],
+            normalized,
+        )
+    if llm_model is not None:
+        if not settings.llm.enabled:
+            raise typer.BadParameter("--llm-model requires --llm-cli or llm.enabled=true")
+        settings.llm.model = llm_model.strip() or None
     resolved = validate_target(target, settings)
 
     orchestrator = build_orchestrator(
@@ -167,6 +194,10 @@ def validate_config(
     typer.echo(f"valid: {config_path}")
     typer.echo(f"project_name: {settings.project_name}")
     typer.echo(f"scanners: {', '.join(item.name for item in settings.detection.scanners)}")
+    typer.echo(
+        f"llm_cli: {settings.llm.provider} "
+        f"({'enabled' if settings.llm.enabled else 'disabled'})"
+    )
 
 
 @app.command("publish")

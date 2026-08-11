@@ -28,7 +28,7 @@
 
 ```bash
 bash scripts/check.sh
-bash scripts/demo.sh
+bash attack2patch/scripts/demo.sh
 ```
 
 ## 위험과 rollback

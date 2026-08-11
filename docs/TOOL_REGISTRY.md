@@ -1,13 +1,13 @@
 # Tool Registry
 
-기계 판독 설정은 `config/tools.yaml`에 있습니다.
+기계 판독 설정은 `attack2patch/config/tools.yaml`에 있습니다.
 
 ## 등록 필드
 
 | 필드 | 의미 |
 | --- | --- |
 | name | 고유 도구 이름 |
-| category | sast/sca/secret/dast/test/scm/sandbox |
+| category | sast/sca/secret/dast/test/llm/scm/sandbox |
 | command | shell 문자열이 아닌 argv template |
 | parser | semgrep-json, sarif, trivy-json 등 |
 | timeout | 단계별 최대 실행 시간 |
@@ -23,6 +23,8 @@
 - 도구 출력은 원문 artifact와 정규화 결과를 분리합니다.
 - 도구 버전을 evidence에 기록합니다.
 - 경로와 config는 target root 밖으로 escape할 수 없습니다.
+- LLM 도구는 선택한 local CLI의 자체 인증 저장소를 사용하며 API key를 harness 설정에 받지 않습니다.
+- Codex/Claude의 native schema 출력과 OpenCode JSONL event는 모두 로컬 Pydantic 모델로 재검증합니다.
 
 ## 정규화
 

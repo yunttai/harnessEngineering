@@ -2,7 +2,8 @@
 
 Attack2Patch의 최상위 아키텍처 맵입니다. 세부 결정은
 `docs/design-docs/`, 요구사항은 `docs/product-specs/`, 진행 상태는 `docs/exec-plans/`에
-기록합니다.
+기록합니다. 실행 제품은 `attack2patch/` 아래에 독립 Python 프로젝트로 배치하고, 이 문서와
+개발 에이전트·계획·저장소 검증 하네스는 루트에 둡니다.
 
 ## 1. 제품 파이프라인
 

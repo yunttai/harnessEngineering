@@ -20,4 +20,5 @@ Types → Config → Repo → Service → Runtime → UI
 
 ## 기계적 검증
 
-`scripts/check-architecture.py`가 `src/autopatch` import를 AST로 검사합니다.
+`attack2patch/scripts/check-architecture.py`가 `attack2patch/src/autopatch` import를 AST로
+검사합니다.

@@ -1,8 +1,9 @@
 # Attack2Patch 배포 롤백 런북
 
 이 문서는 `CommandDeploymentProvider`가 staging/canary 실행 전에 존재 여부를 확인하는 최소
-운영 계약입니다. 실제 환경별 명령은 `config/harness.yaml`의 argv 목록으로만 설정하며 shell
-문자열 보간을 사용하지 않습니다.
+운영 계약입니다. 실제 환경별 명령은 `attack2patch/config/harness.yaml`의 argv 목록으로만
+설정하며 shell 문자열 보간을 사용하지 않습니다. 실행 제품에는 같은 계약을
+`attack2patch/runbooks/rollback.md`로 함께 배포합니다.
 
 ## 사전 조건
 

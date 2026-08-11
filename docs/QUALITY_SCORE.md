@@ -17,8 +17,8 @@
 | Finding Schema | A | Pydantic 모델과 JSON Schema 생성 |
 | 내장 Python 탐지 | B | CWE-89/78/502/secret 지원, 언어 범위 제한 |
 | 외부 scanner | B | Semgrep/Trivy/Gitleaks/SARIF parser, 실제 binary matrix 필요 |
-| 분석 | B | 결정적 CWE 분석과 strict LLM provider, interprocedural flow 필요 |
-| 패치 생성 | B | CWE-89 codemod와 schema/hash/range 검증 LLM TextEdit provider |
+| 분석 | B | 결정적 CWE 분석과 세 가지 local CLI structured-output provider, interprocedural flow 필요 |
+| 패치 생성 | B | CWE-89 codemod와 CLI schema/hash/range 검증 LLM TextEdit provider |
 | 검증 | B | local-copy build/test/re-scan/구조 검증 |
 | 격리 | C | Docker/VM security boundary 미구현 |
 | Git/PR | B | 로컬 branch/commit/push와 mock 검증 GitHub App draft PR |

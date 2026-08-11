@@ -3,7 +3,7 @@
 ## 1. 경계에서 파싱
 
 Scanner JSON, SARIF, YAML, LLM 출력, subprocess 결과, API 입력을 추측한 dictionary로
-사용하지 않습니다. `src/autopatch/types/`의 스키마로 파싱하고 실패를 명시합니다.
+사용하지 않습니다. `attack2patch/src/autopatch/types/`의 스키마로 파싱하고 실패를 명시합니다.
 
 ## 2. Evidence가 최종 판정
 
@@ -57,8 +57,8 @@ Service가 구체 외부 도구를 직접 생성하지 않습니다.
 
 ## 9. 생성 파일
 
-`docs/generated/`와 `schemas/`는 생성 명령을 통해 갱신합니다. 수동 변경이 필요하면 먼저 생성
-도구를 수정합니다.
+`docs/generated/`와 `attack2patch/schemas/`는 생성 명령을 통해 갱신합니다. 수동 변경이
+필요하면 먼저 생성 도구를 수정합니다.
 
 ## 10. 모든 실패는 산출물
 

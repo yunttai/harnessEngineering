@@ -9,6 +9,7 @@ from urllib.parse import unquote
 ROOT = Path(__file__).resolve().parents[1]
 MARKDOWN_FILES = [ROOT / "README.md", ROOT / "AGENTS.md", ROOT / "ARCHITECTURE.md"]
 MARKDOWN_FILES.extend(sorted((ROOT / "docs").rglob("*.md")))
+MARKDOWN_FILES.extend(sorted((ROOT / "attack2patch").rglob("*.md")))
 LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 
 

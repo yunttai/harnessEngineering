@@ -13,6 +13,8 @@ def test_default_config_loads(repository_root: Path) -> None:
     assert settings.project_name == "Attack2Patch"
     assert settings.scope.local_paths_only is True
     assert settings.autonomy.apply_patch is False
+    assert settings.llm.enabled is False
+    assert settings.llm.provider == "codex"
     assert [scanner.name for scanner in settings.detection.scanners] == [
         "builtin-python",
         "semgrep",
@@ -36,6 +38,17 @@ def test_deploy_requires_pr_gate() -> None:
 def test_invalid_redaction_regex_is_rejected() -> None:
     with pytest.raises(ValueError, match="invalid redaction regex"):
         HarnessSettings.model_validate({"logging": {"redact_patterns": ["("]}})
+
+
+@pytest.mark.parametrize("provider", ["codex", "opencode", "claude"])
+def test_supported_llm_cli_provider_is_accepted(provider: str) -> None:
+    settings = HarnessSettings.model_validate({"llm": {"provider": provider}})
+    assert settings.llm.provider == provider
+
+
+def test_http_llm_provider_is_rejected() -> None:
+    with pytest.raises(ValueError, match="Input should be"):
+        HarnessSettings.model_validate({"llm": {"provider": "openai-responses"}})
 
 
 def test_dast_requires_explicit_authorized_target() -> None:

@@ -1,5 +1,6 @@
 # Local execution evidence
 /.autopatch/
+/attack2patch/.autopatch/
 *.log
 *.tmp
 

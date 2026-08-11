@@ -9,8 +9,8 @@
 | Harness map/knowledge base | IMPLEMENTED | AGENTS, ARCHITECTURE, docs, agent prompts, checks | 문서 gardening 자동 PR |
 | Detection Harness | IMPLEMENTED | Python AST, Semgrep, Trivy, Gitleaks, SARIF parser | CodeQL DB 실행 adapter |
 | Finding normalization | IMPLEMENTED | Pydantic Finding, fingerprint, evidence merge | cross-scanner correlation 개선 |
-| Root-cause analysis | IMPLEMENTED | deterministic analyzer와 OpenAI strict structured output provider | interprocedural data-flow |
-| Patch generation | IMPLEMENTED (limited) | CWE-89 codemod + schema-validated LLM TextEdit provider | framework codemod 확대 |
+| Root-cause analysis | IMPLEMENTED | deterministic analyzer와 Codex/OpenCode/Claude CLI structured-output provider | interprocedural data-flow |
+| Patch generation | IMPLEMENTED (limited) | CWE-89 codemod + CLI schema-validated LLM TextEdit provider | framework codemod 확대 |
 | Patch scoring | IMPLEMENTED | Security 40, Regression 30, Size 15, Build 10, Style 5 | 프로젝트별 가중치 profile |
 | Build verification | IMPLEMENTED | Python compileall | 언어/빌드 시스템 adapter |
 | Functional verification | IMPLEMENTED | 명시적 `--execute-tests` pytest | JUnit/Jest/Playwright adapter |

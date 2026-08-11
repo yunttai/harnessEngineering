@@ -29,6 +29,7 @@ class CommandRunner:
         cwd: Path,
         timeout_seconds: int,
         env: Mapping[str, str] | None = None,
+        input_text: str | None = None,
     ) -> CommandResult:
         if not argv or not argv[0].strip():
             raise ValueError("argv must contain an executable")
@@ -46,7 +47,21 @@ class CommandRunner:
         }
         # Windows process and socket initialization depends on these variables.
         # Keep the allowlist explicit instead of forwarding the full environment.
-        for key in ("SYSTEMROOT", "WINDIR", "COMSPEC", "PATHEXT", "TEMP", "TMP"):
+        for key in (
+            "SYSTEMROOT",
+            "WINDIR",
+            "COMSPEC",
+            "PATHEXT",
+            "TEMP",
+            "TMP",
+            "USERPROFILE",
+            "APPDATA",
+            "LOCALAPPDATA",
+            "XDG_CONFIG_HOME",
+            "XDG_DATA_HOME",
+            "CODEX_HOME",
+            "CLAUDE_CONFIG_DIR",
+        ):
             value = os.environ.get(key)
             if value:
                 safe_env[key] = value
@@ -61,6 +76,7 @@ class CommandRunner:
                 env=safe_env,
                 capture_output=True,
                 text=True,
+                input=input_text,
                 timeout=timeout_seconds,
                 check=False,
                 shell=False,

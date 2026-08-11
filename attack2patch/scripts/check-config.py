@@ -24,6 +24,13 @@ def main() -> int:
         raise ValueError("default policy must remain version 1 and dry-run")
     if not settings.scope.local_paths_only:
         raise ValueError("MVP configuration must keep local_paths_only enabled")
+    runbook = (ROOT / settings.deployment.rollback_runbook).resolve()
+    try:
+        runbook.relative_to(ROOT)
+    except ValueError as exc:
+        raise ValueError("deployment rollback runbook must stay inside the product root") from exc
+    if not runbook.is_file():
+        raise FileNotFoundError(f"deployment rollback runbook not found: {runbook}")
     print(
         "[config] valid: "
         f"project={settings.project_name}, scanners={len(settings.detection.scanners)}"

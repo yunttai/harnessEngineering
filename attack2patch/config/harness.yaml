@@ -67,12 +67,12 @@ patching:
 
 llm:
   enabled: false
-  provider: openai-responses
-  model: gpt-5.6
-  base_url: https://api.openai.com/v1
-  api_key_env: OPENAI_API_KEY
+  provider: codex
+  executable: null
+  model: null
   timeout_seconds: 120
-  max_output_tokens: 4096
+  max_prompt_chars: 100000
+  max_output_chars: 200000
   use_for_analysis: false
   use_for_patching: true
 
@@ -101,7 +101,7 @@ deployment:
   canary_command: []
   rollback_command: []
   timeout_seconds: 300
-  rollback_runbook: docs/references/rollback-runbook.md
+  rollback_runbook: runbooks/rollback.md
 
 logging:
   level: INFO

@@ -18,10 +18,11 @@ LLM 또는 에이전트의 설명이 아니라 실제 실행 evidence가 최종 
 ## 읽는 순서
 
 1. `ARCHITECTURE.md`
-2. `docs/index.md`
-3. `docs/product-specs/PRD.md`
-4. 현재 실행 계획 `docs/exec-plans/active/`
-5. 작업에 해당하는 Agent와 설계 문서
+2. `docs/CODE_READING_GUIDE.md`
+3. `docs/index.md`
+4. `docs/product-specs/PRD.md`
+5. 현재 실행 계획 `docs/exec-plans/active/`
+6. 작업에 해당하는 Agent와 설계 문서
 
 ## 저장소 맵
 
@@ -30,9 +31,9 @@ AGENTS.md
 ARCHITECTURE.md
 README.md
 .opencode/agent/
-config/
 docs/
 ├── index.md
+├── CODE_READING_GUIDE.md
 ├── AGENT_TEAM.md
 ├── DESIGN.md
 ├── SECURITY.md
@@ -44,19 +45,22 @@ docs/
 ├── exec-plans/
 ├── generated/
 └── references/
-rules/
-schemas/
-scripts/
-src/autopatch/
-├── types/
+scripts/                       저장소·문서·전체 품질 하네스
+attack2patch/                  독립 실행 제품
 ├── config/
-├── providers/
-├── repo/
-├── service/
-├── runtime/
-└── ui/
-tests/
-examples/
+├── rules/
+├── schemas/
+├── scripts/
+├── src/autopatch/
+│   ├── types/
+│   ├── config/
+│   ├── providers/
+│   ├── repo/
+│   ├── service/
+│   ├── runtime/
+│   └── ui/
+├── tests/
+└── examples/
 ```
 
 ## 작업 규약
@@ -80,7 +84,7 @@ Types → Config → Repo → Service → Runtime → UI
 ```
 
 낮은 레이어가 높은 레이어를 import하지 않습니다. 세부 규칙은 `ARCHITECTURE.md`에 있으며
-`scripts/check-architecture.py`가 기계적으로 검사합니다.
+`attack2patch/scripts/check-architecture.py`가 기계적으로 검사합니다.
 
 ## 검증
 

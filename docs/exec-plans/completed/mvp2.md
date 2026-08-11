@@ -26,7 +26,7 @@ verified-only Git/GitHub App 전달로 확장한다.
 - [x] SARIF common parser
 - [x] candidate ranking 다중 provider
 - [x] local Git publisher 강화
-- [x] OpenAI Responses strict structured-output provider
+- [x] Codex/OpenCode/Claude local CLI structured-output provider
 - [x] verification feedback bounded retry
 - [x] GitHub App provider
 - [x] draft PR evidence template와 CI status link
@@ -36,10 +36,13 @@ verified-only Git/GitHub App 전달로 확장한다.
 
 ```bash
 bash scripts/check.sh
-bash scripts/demo.sh
+bash attack2patch/scripts/demo.sh
 ```
 
-결과: 2026-08-11 기준 31 tests passed, 데모 patch score 100, post-patch Finding 0건.
+결과: 2026-08-11 기준 38 tests passed, 데모 patch score 100, post-patch Finding 0건.
+Codex CLI와 Claude CLI는 실제 인증 세션으로 dry-run하여 각각 구조화 후보 생성과 VERIFIED
+검증까지 통과했다. 현재 개발 환경에 설치되지 않은 OpenCode CLI는 동일 provider 계약의 mock
+JSONL event 테스트로 검증했다.
 
 ## 위험과 rollback
 
@@ -52,10 +55,12 @@ bash scripts/demo.sh
 - 2026-08-11: parser, LLM, feedback, metrics 구현
 - 2026-08-11: local Git 통합과 GitHub App mock PR 검증
 - 2026-08-11: 필수 check 및 end-to-end demo 통과
+- 2026-08-11: OpenAI HTTP provider를 Codex/OpenCode/Claude local CLI provider로 교체하고
+  Codex/Claude 실제 dry-run 통과
 
 ## 결정 기록
 
-- LLM 출력은 Responses API strict JSON Schema 뒤 Pydantic과 로컬 hash/range 검증을 다시 거친다.
+- LLM 출력은 선택한 local CLI의 구조화 출력 뒤 Pydantic과 로컬 hash/range 검증을 다시 거친다.
 - push와 PR은 branch/commit과 분리된 설정·CLI 게이트로 유지한다.
 
 ## 남은 기술 부채

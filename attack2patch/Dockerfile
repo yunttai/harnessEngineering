@@ -13,6 +13,9 @@ RUN pip install --no-cache-dir .
 COPY config ./config
 COPY rules ./rules
 COPY schemas ./schemas
+COPY runbooks ./runbooks
+
+RUN mkdir -p /app/.autopatch && chown autopatch:autopatch /app/.autopatch
 
 USER autopatch
 ENTRYPOINT ["autopatch"]

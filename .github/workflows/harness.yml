@@ -16,7 +16,9 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
+          cache-dependency-path: attack2patch/pyproject.toml
       - name: Install
+        working-directory: attack2patch
         run: python -m pip install -e ".[dev]"
       - name: Harness checks
         run: bash scripts/check.sh

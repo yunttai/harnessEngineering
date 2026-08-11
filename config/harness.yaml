@@ -1,0 +1,109 @@
+version: 1
+project_name: Attack2Patch
+artifact_root: .autopatch/runs
+
+scope:
+  local_paths_only: true
+  authorized_targets: []
+  excluded_directories:
+    - .git
+    - .venv
+    - node_modules
+    - .autopatch
+    - dist
+    - build
+  max_file_bytes: 1048576
+
+autonomy:
+  apply_patch: false
+  execute_tests: false
+  create_branch: false
+  create_commit: false
+  push_branch: false
+  create_pull_request: false
+  deploy: false
+  max_patch_attempts: 3
+  require_clean_git_tree: true
+
+detection:
+  fail_on_required_scanner_error: true
+  scanners:
+    - name: builtin-python
+      enabled: true
+      required: true
+      timeout_seconds: 60
+    - name: semgrep
+      enabled: auto
+      required: false
+      timeout_seconds: 180
+      config: rules/semgrep
+    - name: trivy
+      enabled: auto
+      required: false
+      timeout_seconds: 180
+    - name: gitleaks
+      enabled: auto
+      required: false
+      timeout_seconds: 180
+
+verification:
+  build_timeout_seconds: 120
+  test_timeout_seconds: 300
+  scanner_timeout_seconds: 180
+  exploit_timeout_seconds: 60
+  execute_project_tests: false
+  execute_project_security_tests: false
+  require_build_pass: true
+  require_regression_not_failed: true
+  require_security_rescan_pass: true
+  require_exploit_not_failed: true
+
+patching:
+  supported_cwes:
+    - CWE-89
+  max_candidates_per_finding: 3
+  max_changed_lines: 80
+  prefer_minimal_diff: true
+
+llm:
+  enabled: false
+  provider: openai-responses
+  model: gpt-5.6
+  base_url: https://api.openai.com/v1
+  api_key_env: OPENAI_API_KEY
+  timeout_seconds: 120
+  max_output_tokens: 4096
+  use_for_analysis: false
+  use_for_patching: true
+
+publishing:
+  branch_prefix: attack2patch/security
+  draft_pull_request: true
+  push_remote: origin
+  github_app:
+    enabled: false
+    repository: null
+    base_branch: main
+    api_url: https://api.github.com
+    web_url: https://github.com
+    app_id_env: GITHUB_APP_ID
+    installation_id_env: GITHUB_APP_INSTALLATION_ID
+    private_key_env: GITHUB_APP_PRIVATE_KEY
+    timeout_seconds: 30
+
+dast:
+  enabled: false
+  authorized_targets: []
+
+deployment:
+  enabled: false
+  staging_command: []
+  canary_command: []
+  rollback_command: []
+  timeout_seconds: 300
+  rollback_runbook: docs/references/rollback-runbook.md
+
+logging:
+  level: INFO
+  redact_patterns:
+    - '(?i)(api[_-]?key|token|secret|password)\s*[:=]\s*[^\s]+'

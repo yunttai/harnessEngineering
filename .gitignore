@@ -1,9 +1,28 @@
+# Local execution evidence
+/.autopatch/
+*.log
+*.tmp
+
+# Python
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 .venv/
-.env
-*.db
-work/
 dist/
 build/
+*.egg-info/
+
+# Secrets and local config
+.env
+.env.*
+!.env.example
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

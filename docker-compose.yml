@@ -1,43 +1,23 @@
 services:
-  attack2patch:
-    build:
-      context: .
-      dockerfile: docker/attack2patch.Dockerfile
-    environment:
-      ATTACK2PATCH_DATABASE_URL: sqlite:////app/data/attack2patch.db
-      ATTACK2PATCH_WORKSPACE: /app/data/work
-      ATTACK2PATCH_ACCESS_LOG_PATH: /logs/access.jsonl
-      ATTACK2PATCH_DEMO_BASE_URL: http://demo-app:5000
-      ATTACK2PATCH_DEPLOY_APPROVAL_REQUIRED: "true"
-      ATTACK2PATCH_COMPOSE_PROJECT_NAME: attack2patch
+  api:
+    build: .
+    command: ["serve", "--host", "0.0.0.0", "--port", "8000"]
     ports:
-      - "127.0.0.1:8080:8080"
-    depends_on:
-      demo-app:
-        condition: service_healthy
+      - "127.0.0.1:8000:8000"
     volumes:
-      - attack2patch-data:/app/data
-      - access-logs:/logs
-      - /var/run/docker.sock:/var/run/docker.sock
-
-  demo-app:
-    build:
-      context: demo-app
-    image: ${ATTACK2PATCH_DEMO_IMAGE:-attack2patch-demo:baseline}
-    ports:
-      - "127.0.0.1:5000:5000"
+      - type: bind
+        source: .
+        target: /workspace
+        read_only: true
+      - type: volume
+        source: autopatch-runs
+        target: /app/.autopatch
     environment:
-      DEMO_ACCESS_LOG_PATH: /logs/access.jsonl
-    volumes:
-      - access-logs:/logs
-    healthcheck:
-      test: ["CMD", "python", "healthcheck.py"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+      AUTOPATCH_CONFIG: /app/config/harness.yaml
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 
 volumes:
-  attack2patch-data:
-    name: attack2patch-data
-  access-logs:
-    name: attack2patch-access-logs
+  autopatch-runs:

@@ -1,43 +1,98 @@
 # AGENTS.md
 
-이 파일은 에이전트를 위한 짧은 저장소 지도입니다. 상세 지식은 `docs/`를 단일 기록 시스템으로 사용합니다.
+이 파일은 저장소의 **목차와 실행 지도**입니다. 세부 규칙과 근거는 `docs/`가 단일 기록
+시스템(system of record)으로 제공합니다. 작업을 시작할 때 이 파일과 `ARCHITECTURE.md`를
+먼저 읽습니다.
 
-## 시작 순서
+## 목표
 
-1. `docs/product-specs/attack2patch-prd.md`
-2. `ARCHITECTURE.md`
-3. `docs/design-docs/attack2patch-design.md`
-4. `docs/design-docs/attack2patch-threat-model.md`
-5. `docs/exec-plans/active/attack2patch-mvp.md`
-6. `docs/SECURITY.md`, `docs/RELIABILITY.md`
-
-## 리포지터리 구조
+로컬·허가된 저장소에서 다음 폐쇄형 루프를 수행합니다.
 
 ```text
-docs/                 제품 요구사항, 설계, 계획, 보안 지식
-src/attack2patch/     Attack2Patch 제품 코드
-demo-app/             의도적으로 취약한 격리형 Flask 데모 앱
-rules/                로그 및 코드 탐지 규칙
-tests/                단위, 통합, E2E 검증
-scripts/              품질 검사와 데모 실행 도구
-docker/               Attack2Patch 이미지 정의
-docker-compose.yml    로컬 데모 배포 구성
+Detection → Normalization → Analysis → Patch Candidates
+→ Build/Test/Re-scan/Exploit Verification → Review → PR/Deploy
 ```
 
-## 작업 규칙
+LLM 또는 에이전트의 설명이 아니라 실제 실행 evidence가 최종 판정을 담당합니다.
 
-- MVP는 Python Flask, SQLite, SQL Injection, Docker Compose만 지원한다.
-- 공격 입력은 신뢰하지 않고 스키마로 파싱한다.
-- 패치 및 배포는 사용자 승인 없이는 수행하지 않는다.
-- Docker 제어 인터페이스를 외부 네트워크에 노출하지 않는다.
-- `demo-app/`의 취약 코드를 일반 서비스 코드로 복사하지 않는다.
-- 변경 후 테스트, 보안 재검사, 헬스체크를 수행한다.
-- 제품 동작이나 범위가 바뀌면 PRD와 관련 설계 문서를 함께 갱신한다.
+## 읽는 순서
 
-## 완료 조건
+1. `ARCHITECTURE.md`
+2. `docs/index.md`
+3. `docs/product-specs/PRD.md`
+4. 현재 실행 계획 `docs/exec-plans/active/`
+5. 작업에 해당하는 Agent와 설계 문서
 
-- 정상 요청 회귀 테스트 통과
-- SQL Injection 재현 테스트 통과
-- 정적 분석 재검사 통과
-- 신규 컨테이너 헬스체크 통과
-- 실패 시 이전 이미지 롤백 검증
+## 저장소 맵
+
+```text
+AGENTS.md
+ARCHITECTURE.md
+README.md
+.opencode/agent/
+config/
+docs/
+├── index.md
+├── AGENT_TEAM.md
+├── DESIGN.md
+├── SECURITY.md
+├── RELIABILITY.md
+├── PLANS.md
+├── QUALITY_SCORE.md
+├── product-specs/
+├── design-docs/
+├── exec-plans/
+├── generated/
+└── references/
+rules/
+schemas/
+scripts/
+src/autopatch/
+├── types/
+├── config/
+├── providers/
+├── repo/
+├── service/
+├── runtime/
+└── ui/
+tests/
+examples/
+```
+
+## 작업 규약
+
+- **허가 범위**: 사용자가 소유하거나 명시적으로 허가받은 로컬 저장소만 처리합니다.
+- **기본 dry-run**: 원본 수정, Git 작업, PR, 배포는 각각 명시적으로 허용해야 합니다.
+- **경계 파싱**: Scanner/LLM/프로세스 출력은 Pydantic 스키마로 파싱한 뒤 사용합니다.
+- **최소 패치**: 전체 파일 재생성보다 위치가 고정된 `TextEdit`와 unified diff를 사용합니다.
+- **검증 우선**: build, regression, re-scan, exploit mitigation 중 실패한 항목이 있으면
+  패치를 VERIFIED로 표시하지 않습니다.
+- **독립 리뷰**: patcher가 자신의 패치를 최종 승인하지 않습니다.
+- **Evidence 보존**: 성공과 실패를 모두 `.autopatch/runs/`에 기록합니다.
+- **재시도 제한**: 동일 Finding에 대한 자동 재패치는 설정된 최대 횟수를 넘지 않습니다.
+- **복잡 취약점**: 인증/인가·IDOR·비즈니스 로직은 자동 수정보다 사람 검토를 우선합니다.
+
+## 코드 레이어 불변 조건
+
+```text
+Types → Config → Repo → Service → Runtime → UI
+          Providers는 명시적 인터페이스로만 교차 관심사를 주입
+```
+
+낮은 레이어가 높은 레이어를 import하지 않습니다. 세부 규칙은 `ARCHITECTURE.md`에 있으며
+`scripts/check-architecture.py`가 기계적으로 검사합니다.
+
+## 검증
+
+변경 후 반드시 실행합니다.
+
+```bash
+bash scripts/check.sh
+```
+
+## 상태 기록
+
+- 활성 계획: `docs/exec-plans/active/`
+- 완료 계획: `docs/exec-plans/completed/`
+- 기술 부채: `docs/exec-plans/tech-debt-tracker.md`
+- 품질 등급: `docs/QUALITY_SCORE.md`

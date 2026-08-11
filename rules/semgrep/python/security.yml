@@ -1,0 +1,37 @@
+rules:
+  - id: autopatch.python.formatted-sql-query
+    message: Formatted SQL query reaches execute()
+    severity: ERROR
+    languages:
+      - python
+    metadata:
+      cwe:
+        - "CWE-89: Improper Neutralization of Special Elements used in an SQL Command"
+      category: security
+      source: user-controlled value
+      sink: database execute
+      confidence: medium
+    patterns:
+      - pattern-either:
+          - pattern: $CURSOR.execute(f"...{$VALUE}...")
+          - pattern: |
+              $QUERY = f"...{$VALUE}..."
+              ...
+              $CURSOR.execute($QUERY)
+
+  - id: autopatch.python.os-system-dynamic
+    message: Dynamic value reaches os.system()
+    severity: ERROR
+    languages:
+      - python
+    metadata:
+      cwe:
+        - "CWE-78: Improper Neutralization of Special Elements used in an OS Command"
+      category: security
+      sink: os.system
+    patterns:
+      - pattern: os.system($COMMAND)
+      - metavariable-pattern:
+          metavariable: $COMMAND
+          patterns:
+            - pattern-not: "..."

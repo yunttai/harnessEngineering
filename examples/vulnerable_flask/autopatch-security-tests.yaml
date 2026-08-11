@@ -1,0 +1,9 @@
+version: 1
+tests:
+  - id: cwe-89-get-user
+    finding: CWE-89
+    command:
+      - python
+      - security_test.py
+    timeout_seconds: 30
+    expected_exit_code: 0

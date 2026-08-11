@@ -1,0 +1,1192 @@
+{
+  "$defs": {
+    "AnalysisResult": {
+      "properties": {
+        "confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "context": {
+          "$ref": "#/$defs/CodeContext"
+        },
+        "cwe": {
+          "title": "Cwe",
+          "type": "string"
+        },
+        "existing_validation": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Existing Validation",
+          "type": "array"
+        },
+        "exploitability": {
+          "$ref": "#/$defs/Exploitability"
+        },
+        "finding_id": {
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "forbidden_fixes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Forbidden Fixes",
+          "type": "array"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "recommended_fix": {
+          "title": "Recommended Fix",
+          "type": "string"
+        },
+        "required_tests": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Required Tests",
+          "type": "array"
+        },
+        "root_cause": {
+          "title": "Root Cause",
+          "type": "string"
+        },
+        "sink": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sink"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        }
+      },
+      "required": [
+        "finding_id",
+        "cwe",
+        "root_cause",
+        "exploitability",
+        "confidence",
+        "recommended_fix",
+        "context"
+      ],
+      "title": "AnalysisResult",
+      "type": "object"
+    },
+    "CandidateEvaluation": {
+      "properties": {
+        "candidate": {
+          "$ref": "#/$defs/PatchCandidate"
+        },
+        "verification": {
+          "$ref": "#/$defs/VerificationReport"
+        }
+      },
+      "required": [
+        "candidate",
+        "verification"
+      ],
+      "title": "CandidateEvaluation",
+      "type": "object"
+    },
+    "CodeContext": {
+      "properties": {
+        "end_line": {
+          "minimum": 1,
+          "title": "End Line",
+          "type": "integer"
+        },
+        "file": {
+          "title": "File",
+          "type": "string"
+        },
+        "function": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Function"
+        },
+        "snippet": {
+          "title": "Snippet",
+          "type": "string"
+        },
+        "start_line": {
+          "minimum": 1,
+          "title": "Start Line",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "file",
+        "start_line",
+        "end_line",
+        "snippet"
+      ],
+      "title": "CodeContext",
+      "type": "object"
+    },
+    "DeploymentPhase": {
+      "enum": [
+        "STAGING",
+        "CANARY",
+        "ROLLBACK"
+      ],
+      "title": "DeploymentPhase",
+      "type": "string"
+    },
+    "DeploymentResult": {
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "duration_ms": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "exit_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exit Code"
+        },
+        "phase": {
+          "$ref": "#/$defs/DeploymentPhase"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "status": {
+          "$ref": "#/$defs/StageStatus"
+        },
+        "stderr_excerpt": {
+          "default": "",
+          "title": "Stderr Excerpt",
+          "type": "string"
+        },
+        "stdout_excerpt": {
+          "default": "",
+          "title": "Stdout Excerpt",
+          "type": "string"
+        }
+      },
+      "required": [
+        "phase",
+        "status",
+        "command"
+      ],
+      "title": "DeploymentResult",
+      "type": "object"
+    },
+    "Evidence": {
+      "additionalProperties": true,
+      "properties": {
+        "column": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Column"
+        },
+        "file": {
+          "title": "File",
+          "type": "string"
+        },
+        "line": {
+          "minimum": 1,
+          "title": "Line",
+          "type": "integer"
+        },
+        "message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Message"
+        },
+        "metadata": {
+          "additionalProperties": true,
+          "title": "Metadata",
+          "type": "object"
+        },
+        "raw_excerpt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Raw Excerpt"
+        },
+        "rule_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rule Id"
+        },
+        "scanner": {
+          "title": "Scanner",
+          "type": "string"
+        },
+        "sink": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sink"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        }
+      },
+      "required": [
+        "scanner",
+        "file",
+        "line"
+      ],
+      "title": "Evidence",
+      "type": "object"
+    },
+    "Exploitability": {
+      "enum": [
+        "CONFIRMED",
+        "LIKELY",
+        "UNCERTAIN",
+        "NOT_EXPLOITABLE"
+      ],
+      "title": "Exploitability",
+      "type": "string"
+    },
+    "Finding": {
+      "additionalProperties": false,
+      "properties": {
+        "cwe": {
+          "title": "Cwe",
+          "type": "string"
+        },
+        "end_line": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Line"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "file": {
+          "title": "File",
+          "type": "string"
+        },
+        "finding_id": {
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "fingerprint": {
+          "title": "Fingerprint",
+          "type": "string"
+        },
+        "function": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Function"
+        },
+        "line": {
+          "minimum": 1,
+          "title": "Line",
+          "type": "integer"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "metadata": {
+          "additionalProperties": true,
+          "title": "Metadata",
+          "type": "object"
+        },
+        "rule_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rule Id"
+        },
+        "scanner": {
+          "title": "Scanner",
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "sink": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sink"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "status": {
+          "$ref": "#/$defs/FindingStatus",
+          "default": "DETECTED"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "finding_id",
+        "fingerprint",
+        "type",
+        "cwe",
+        "severity",
+        "file",
+        "line",
+        "scanner",
+        "message"
+      ],
+      "title": "Finding",
+      "type": "object"
+    },
+    "FindingOutcome": {
+      "properties": {
+        "analysis": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AnalysisResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "applied": {
+          "default": false,
+          "title": "Applied",
+          "type": "boolean"
+        },
+        "evaluations": {
+          "items": {
+            "$ref": "#/$defs/CandidateEvaluation"
+          },
+          "title": "Evaluations",
+          "type": "array"
+        },
+        "finding": {
+          "$ref": "#/$defs/Finding"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "selected_candidate_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Selected Candidate Id"
+        },
+        "status": {
+          "$ref": "#/$defs/FindingStatus"
+        }
+      },
+      "required": [
+        "finding",
+        "status"
+      ],
+      "title": "FindingOutcome",
+      "type": "object"
+    },
+    "FindingStatus": {
+      "enum": [
+        "DETECTED",
+        "ANALYZED",
+        "PATCH_GENERATED",
+        "VERIFIED",
+        "APPLIED",
+        "NEEDS_HUMAN_REVIEW",
+        "FAILED"
+      ],
+      "title": "FindingStatus",
+      "type": "string"
+    },
+    "PatchCandidate": {
+      "properties": {
+        "candidate_id": {
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "changed_files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Changed Files",
+          "type": "array"
+        },
+        "changed_lines": {
+          "minimum": 0,
+          "title": "Changed Lines",
+          "type": "integer"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "edits": {
+          "items": {
+            "$ref": "#/$defs/TextEdit"
+          },
+          "title": "Edits",
+          "type": "array"
+        },
+        "expected_security_effect": {
+          "title": "Expected Security Effect",
+          "type": "string"
+        },
+        "finding_id": {
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "metadata": {
+          "additionalProperties": true,
+          "title": "Metadata",
+          "type": "object"
+        },
+        "provider": {
+          "title": "Provider",
+          "type": "string"
+        },
+        "rationale": {
+          "title": "Rationale",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "unified_diff": {
+          "title": "Unified Diff",
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "finding_id",
+        "title",
+        "description",
+        "rationale",
+        "expected_security_effect",
+        "edits",
+        "unified_diff",
+        "changed_files",
+        "changed_lines",
+        "provider"
+      ],
+      "title": "PatchCandidate",
+      "type": "object"
+    },
+    "PatchScore": {
+      "properties": {
+        "build_stability": {
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Build Stability",
+          "type": "integer"
+        },
+        "code_change_size": {
+          "maximum": 15,
+          "minimum": 0,
+          "title": "Code Change Size",
+          "type": "integer"
+        },
+        "coding_style": {
+          "maximum": 5,
+          "minimum": 0,
+          "title": "Coding Style",
+          "type": "integer"
+        },
+        "regression_test": {
+          "maximum": 30,
+          "minimum": 0,
+          "title": "Regression Test",
+          "type": "integer"
+        },
+        "security_test": {
+          "maximum": 40,
+          "minimum": 0,
+          "title": "Security Test",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "security_test",
+        "regression_test",
+        "code_change_size",
+        "build_stability",
+        "coding_style"
+      ],
+      "title": "PatchScore",
+      "type": "object"
+    },
+    "PullRequestResult": {
+      "properties": {
+        "base": {
+          "title": "Base",
+          "type": "string"
+        },
+        "draft": {
+          "title": "Draft",
+          "type": "boolean"
+        },
+        "head": {
+          "title": "Head",
+          "type": "string"
+        },
+        "number": {
+          "minimum": 1,
+          "title": "Number",
+          "type": "integer"
+        },
+        "state": {
+          "title": "State",
+          "type": "string"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "number",
+        "url",
+        "state",
+        "draft",
+        "head",
+        "base"
+      ],
+      "title": "PullRequestResult",
+      "type": "object"
+    },
+    "RunMetrics": {
+      "properties": {
+        "autonomous_patch_rate": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Autonomous Patch Rate"
+        },
+        "average_changed_lines": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Average Changed Lines"
+        },
+        "average_retry_count": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Average Retry Count"
+        },
+        "detection_precision": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detection Precision"
+        },
+        "exploit_mitigation_rate": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exploit Mitigation Rate"
+        },
+        "patch_success_rate": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Patch Success Rate"
+        },
+        "regression_rate": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Regression Rate"
+        },
+        "security_fix_rate": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Security Fix Rate"
+        },
+        "verification_skipped_ratio": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Verification Skipped Ratio"
+        }
+      },
+      "title": "RunMetrics",
+      "type": "object"
+    },
+    "RunState": {
+      "enum": [
+        "CREATED",
+        "DETECTING",
+        "DETECTED",
+        "ANALYZING",
+        "PATCH_GENERATING",
+        "VERIFYING",
+        "VERIFIED",
+        "APPLIED",
+        "PR_CREATED",
+        "DEPLOYED",
+        "DETECTION_FAILED",
+        "ANALYSIS_FAILED",
+        "PATCH_FAILED",
+        "BUILD_FAILED",
+        "TEST_FAILED",
+        "SECURITY_TEST_FAILED",
+        "NEEDS_HUMAN_REVIEW",
+        "PUBLISH_FAILED",
+        "DEPLOY_FAILED",
+        "FAILED"
+      ],
+      "title": "RunState",
+      "type": "string"
+    },
+    "Severity": {
+      "enum": [
+        "CRITICAL",
+        "HIGH",
+        "MEDIUM",
+        "LOW",
+        "INFO",
+        "UNKNOWN"
+      ],
+      "title": "Severity",
+      "type": "string"
+    },
+    "StageResult": {
+      "properties": {
+        "command": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Command"
+        },
+        "duration_ms": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "exit_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exit Code"
+        },
+        "metadata": {
+          "additionalProperties": true,
+          "title": "Metadata",
+          "type": "object"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "status": {
+          "$ref": "#/$defs/StageStatus"
+        },
+        "stderr_excerpt": {
+          "default": "",
+          "title": "Stderr Excerpt",
+          "type": "string"
+        },
+        "stdout_excerpt": {
+          "default": "",
+          "title": "Stdout Excerpt",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "status"
+      ],
+      "title": "StageResult",
+      "type": "object"
+    },
+    "StageStatus": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "SKIPPED",
+        "ERROR"
+      ],
+      "title": "StageStatus",
+      "type": "string"
+    },
+    "StateEvent": {
+      "properties": {
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "metadata": {
+          "additionalProperties": true,
+          "title": "Metadata",
+          "type": "object"
+        },
+        "state": {
+          "$ref": "#/$defs/RunState"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "title": "Timestamp",
+          "type": "string"
+        }
+      },
+      "required": [
+        "state",
+        "message"
+      ],
+      "title": "StateEvent",
+      "type": "object"
+    },
+    "TextEdit": {
+      "properties": {
+        "end_line": {
+          "minimum": 1,
+          "title": "End Line",
+          "type": "integer"
+        },
+        "file": {
+          "title": "File",
+          "type": "string"
+        },
+        "original_sha256": {
+          "title": "Original Sha256",
+          "type": "string"
+        },
+        "replacement": {
+          "title": "Replacement",
+          "type": "string"
+        },
+        "start_line": {
+          "minimum": 1,
+          "title": "Start Line",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "file",
+        "start_line",
+        "end_line",
+        "replacement",
+        "original_sha256"
+      ],
+      "title": "TextEdit",
+      "type": "object"
+    },
+    "VerificationReport": {
+      "properties": {
+        "build": {
+          "$ref": "#/$defs/StageResult"
+        },
+        "candidate_id": {
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "confidence": {
+          "title": "Confidence",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "eligible": {
+          "title": "Eligible",
+          "type": "boolean"
+        },
+        "exploit_test": {
+          "$ref": "#/$defs/StageResult"
+        },
+        "finding_id": {
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "functional_test": {
+          "$ref": "#/$defs/StageResult"
+        },
+        "rejection_reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Rejection Reasons",
+          "type": "array"
+        },
+        "sandbox_kind": {
+          "default": "local-copy",
+          "title": "Sandbox Kind",
+          "type": "string"
+        },
+        "score": {
+          "$ref": "#/$defs/PatchScore"
+        },
+        "security_rescan": {
+          "$ref": "#/$defs/StageResult"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "finding_id",
+        "build",
+        "functional_test",
+        "security_rescan",
+        "exploit_test",
+        "score",
+        "eligible",
+        "confidence"
+      ],
+      "title": "VerificationReport",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "artifact_dir": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Artifact Dir"
+    },
+    "config_path": {
+      "title": "Config Path",
+      "type": "string"
+    },
+    "deployments": {
+      "items": {
+        "$ref": "#/$defs/DeploymentResult"
+      },
+      "title": "Deployments",
+      "type": "array"
+    },
+    "dry_run": {
+      "default": true,
+      "title": "Dry Run",
+      "type": "boolean"
+    },
+    "events": {
+      "items": {
+        "$ref": "#/$defs/StateEvent"
+      },
+      "title": "Events",
+      "type": "array"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/Finding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "finished_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Finished At"
+    },
+    "metadata": {
+      "additionalProperties": true,
+      "title": "Metadata",
+      "type": "object"
+    },
+    "metrics": {
+      "$ref": "#/$defs/RunMetrics"
+    },
+    "outcomes": {
+      "items": {
+        "$ref": "#/$defs/FindingOutcome"
+      },
+      "title": "Outcomes",
+      "type": "array"
+    },
+    "pull_request": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PullRequestResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "scanner_errors": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Scanner Errors",
+      "type": "array"
+    },
+    "started_at": {
+      "format": "date-time",
+      "title": "Started At",
+      "type": "string"
+    },
+    "state": {
+      "$ref": "#/$defs/RunState",
+      "default": "CREATED"
+    },
+    "target": {
+      "title": "Target",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run_id",
+    "target",
+    "config_path"
+  ],
+  "title": "RunReport",
+  "type": "object"
+}

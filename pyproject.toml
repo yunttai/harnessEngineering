@@ -1,28 +1,49 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "attack2patch"
 version = "0.1.0"
-description = "Attack log to validated patch and Docker redeployment MVP"
+description = "Attack2Patch verification-driven secure auto-patching harness"
+readme = "README.md"
 requires-python = ">=3.11"
-dependencies = ["flask>=3.0,<4", "pydantic>=2.0,<3"]
+dependencies = [
+  "fastapi>=0.115,<1",
+  "httpx>=0.27,<1",
+  "PyJWT[crypto]>=2.9,<3",
+  "pydantic>=2.8,<3",
+  "PyYAML>=6,<7",
+  "typer>=0.12,<1",
+  "uvicorn>=0.30,<1",
+]
 
 [project.optional-dependencies]
-validation = ["pytest>=8,<9"]
-dev = ["pytest>=8,<9", "ruff>=0.6"]
+dev = [
+  "pytest>=8,<10",
+]
+
+[project.scripts]
+attack2patch = "autopatch.ui.cli:app"
+autopatch = "autopatch.ui.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "demo-app/tests"]
+addopts = "-ra"
+testpaths = ["tests"]
 pythonpath = ["src"]
-markers = [
-    "baseline_vulnerable: proves the isolated demo baseline is vulnerable before patching",
-]
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+ignore = ["S101"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["autopatch"]

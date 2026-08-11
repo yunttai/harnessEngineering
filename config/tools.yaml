@@ -1,0 +1,105 @@
+version: 1
+tools:
+  builtin-python:
+    category: sast
+    provider: autopatch.runtime.builtin_scanner:BuiltinPythonScanner
+    command: null
+    output: finding-schema
+
+  semgrep:
+    category: sast
+    command:
+      - semgrep
+      - scan
+      - --json
+      - --metrics=off
+      - --config
+      - rules/semgrep
+    parser: semgrep-json
+    network: false
+
+  codeql:
+    category: sast
+    command:
+      - codeql
+    parser: sarif
+    enabled_by_default: false
+
+  trivy:
+    category: sca
+    command:
+      - trivy
+      - fs
+      - --format
+      - json
+    parser: trivy-json
+    enabled_by_default: false
+
+  osv-scanner:
+    category: sca
+    command:
+      - osv-scanner
+      - scan
+      - --format
+      - json
+    parser: osv-json
+    enabled_by_default: false
+
+  gitleaks:
+    category: secret
+    command:
+      - gitleaks
+      - detect
+      - --no-git
+      - --report-format
+      - json
+      - --report-path
+      - '-'
+    parser: gitleaks-json
+    enabled_by_default: false
+
+  pytest:
+    category: regression
+    command:
+      - python
+      - -m
+      - pytest
+      - -q
+    network: false
+
+  compileall:
+    category: build
+    command:
+      - python
+      - -m
+      - compileall
+      - -q
+      - .
+    network: false
+
+  zap:
+    category: dast
+    enabled_by_default: false
+    authorization_required: true
+
+  nuclei:
+    category: dast
+    enabled_by_default: false
+    authorization_required: true
+
+  git:
+    category: scm
+    command:
+      - git
+
+  gh:
+    category: scm
+    command:
+      - gh
+    enabled_by_default: false
+
+  docker:
+    category: sandbox
+    command:
+      - docker
+    enabled_by_default: false

@@ -1,0 +1,41 @@
+version: 1
+name: default-safe-local
+
+authorization:
+  require_local_path: true
+  require_explicit_dast_target: true
+  deny_external_network_by_default: true
+
+patch:
+  default_mode: dry-run
+  require_original_hash_match: true
+  reject_binary_files: true
+  reject_generated_files: true
+  reject_lockfile_changes_without_sca_evidence: true
+  max_changed_files: 5
+  max_changed_lines: 80
+
+verification:
+  mandatory:
+    - build
+    - security_rescan
+  allowed_skip:
+    - functional_test
+    - exploit_test
+  skipped_gate_reduces_confidence: true
+
+publish:
+  require_verified_candidate: true
+  require_clean_git_tree: true
+  require_human_approval_for_push: true
+  require_human_approval_for_pull_request: true
+  github_app_minimum_permissions:
+    contents: write
+    pull_requests: write
+
+deploy:
+  enabled: false
+  require_staging: true
+  require_canary: true
+  require_rollback_plan: true
+  require_human_approval: true

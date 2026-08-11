@@ -15,6 +15,7 @@ def test_orchestrator_dry_run_preserves_target(
 ) -> None:
     config_path = repository_root / "config" / "harness.yaml"
     settings = load_settings(config_path)
+    settings.llm.enabled = False
     settings.artifact_root = str(Path("artifacts"))
     monkeypatch.chdir(tmp_path)
     before = (vulnerable_project / "app.py").read_text(encoding="utf-8")
@@ -47,6 +48,7 @@ def test_orchestrator_applies_only_verified_candidate(
 ) -> None:
     config_path = repository_root / "config" / "harness.yaml"
     settings = load_settings(config_path)
+    settings.llm.enabled = False
     settings.artifact_root = "artifacts"
     monkeypatch.chdir(tmp_path)
 

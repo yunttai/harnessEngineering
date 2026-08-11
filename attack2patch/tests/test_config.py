@@ -13,7 +13,7 @@ def test_default_config_loads(repository_root: Path) -> None:
     assert settings.project_name == "Attack2Patch"
     assert settings.scope.local_paths_only is True
     assert settings.autonomy.apply_patch is False
-    assert settings.llm.enabled is False
+    assert settings.llm.enabled is True
     assert settings.llm.provider == "codex"
     assert [scanner.name for scanner in settings.detection.scanners] == [
         "builtin-python",

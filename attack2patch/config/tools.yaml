@@ -84,7 +84,7 @@ tools:
       - exec
     parser: strict-json-schema
     network: true
-    enabled_by_default: false
+    enabled_by_default: true
 
   opencode:
     category: llm

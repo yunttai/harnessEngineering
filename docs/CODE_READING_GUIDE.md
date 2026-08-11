@@ -281,7 +281,7 @@ API는 MVP에서 원본 적용을 의도적으로 거부합니다. `apply`와 pu
 코드를 읽을 때 다음을 구현 완료로 오해하지 않도록 주의합니다.
 
 - 내장 자동 패처의 결정적 수정 범위는 현재 **CWE-89**입니다.
-- Codex/OpenCode/Claude CLI 분석·패치 provider는 구현되어 있지만 기본 설정에서는 비활성입니다.
+- Codex CLI 분석·패치 provider가 기본 활성화되며 OpenCode/Claude는 설정이나 `--llm-cli`로 교체합니다.
 - 선택한 CLI의 설치와 자체 로그인이 필요하며 Attack2Patch는 API key를 보관하지 않습니다.
 - Semgrep, Trivy, Gitleaks는 설치된 경우 실행되는 선택 provider입니다.
 - DAST는 허가 설정과 경계 검증이 있으며 ZAP/Nuclei 실행 adapter는 향후 범위입니다.

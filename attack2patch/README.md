@@ -48,6 +48,9 @@ python -m pip install -e ".[dev]"
 
 ## 실행
 
+기본 `run`은 로컬에 설치되고 로그인된 **Codex CLI**를 패치 후보 provider로 사용합니다.
+Codex를 먼저 준비한 뒤 실행합니다.
+
 ```bash
 attack2patch validate-config
 attack2patch scan examples/vulnerable_flask
@@ -75,6 +78,7 @@ AUTOPATCH_CONFIG=/absolute/path/harness.yaml attack2patch scan /authorized/repos
 - 원본 변경 없이 후보와 evidence를 만드는 dry-run이 기본입니다.
 - 대상 저장소 테스트와 보안 재현 명령 실행은 각각 opt-in입니다.
 - 원본 SHA-256이 후보 생성 시점과 다르면 패치 적용을 중단합니다.
+- 패치 `run`은 기본적으로 Codex CLI 후보와 내장 결정적 후보를 함께 생성·검증합니다.
 - build, regression, security re-scan, exploit 필수 게이트를 통과하지 못한 후보는 선택하지
   않습니다.
 - apply, branch, commit, push, PR, deploy 권한은 독립된 설정 게이트입니다.
@@ -139,17 +143,24 @@ bash scripts/demo.sh
 - 내장 Python scanner: CWE-89, CWE-78, CWE-502와 단순 하드코딩 secret 탐지
 - 내장 patcher: 제한된 CWE-89 parameterized query 수정
 - 선택 scanner: Semgrep, Trivy, Gitleaks 및 SARIF parser
-- 선택 LLM: 로컬 Codex, OpenCode, Claude CLI의 구조화 출력
+- 기본 LLM: 로컬 Codex CLI의 구조화 출력
+- 대체 LLM: OpenCode 또는 Claude CLI
 - 게시: 로컬 Git과 GitHub App draft PR
 - 배포: staging/canary/rollback argv provider와 명시적 설정 게이트
 
-LLM CLI는 기본 비활성이며, 선택한 CLI를 먼저 설치하고 해당 CLI 자체 로그인 절차를 완료해야
-합니다. Attack2Patch는 API key를 직접 받거나 저장하지 않습니다. 한 번의 run에서만 활성화하려면:
+LLM CLI는 기본 활성화되어 있으며 기본 provider는 `codex`입니다. 선택한 CLI를 먼저 설치하고
+해당 CLI 자체 로그인 절차를 완료해야 합니다. Attack2Patch는 API key를 직접 받거나 저장하지
+않습니다. 다른 CLI를 선택하려면:
 
 ```bash
-attack2patch run examples/vulnerable_flask --llm-cli codex
 attack2patch run examples/vulnerable_flask --llm-cli opencode --llm-model provider/model
 attack2patch run examples/vulnerable_flask --llm-cli claude --llm-model sonnet
+```
+
+LLM을 의도적으로 사용하지 않는 결정적 fallback 실행만 `--no-llm`으로 요청합니다.
+
+```bash
+attack2patch run examples/vulnerable_flask --no-llm
 ```
 
 상시 설정은 `config/harness.yaml`의 `llm.enabled`, `llm.provider`, `llm.model`을 사용합니다.

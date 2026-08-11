@@ -35,6 +35,7 @@ def test_verified_run_can_create_intentional_local_branch_and_commit(
 
     config_path = repository_root / "config" / "harness.yaml"
     settings = load_settings(config_path)
+    settings.llm.enabled = False
     settings.artifact_root = "artifacts"
     settings.autonomy.apply_patch = True
     settings.autonomy.create_branch = True

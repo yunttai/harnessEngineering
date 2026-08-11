@@ -56,7 +56,10 @@ def test_api_exposes_persisted_run_status(
         str(repository_root / "config" / "harness.yaml"),
     )
     client = TestClient(app)
-    started = client.post("/v1/run", json={"target": str(vulnerable_project)})
+    started = client.post(
+        "/v1/run",
+        json={"target": str(vulnerable_project), "use_llm": False},
+    )
     assert started.status_code == 200
     run_id = started.json()["run_id"]
 
@@ -65,3 +68,22 @@ def test_api_exposes_persisted_run_status(
     assert status.status_code == 200
     assert status.json()["run_id"] == run_id
     assert status.json()["state"] == "VERIFIED"
+
+
+def test_api_scan_does_not_initialize_default_llm(
+    vulnerable_project: Path,
+    repository_root: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv(
+        "AUTOPATCH_CONFIG",
+        str(repository_root / "config" / "harness.yaml"),
+    )
+
+    response = TestClient(app).post(
+        "/v1/scan",
+        json={"target": str(vulnerable_project)},
+    )
+
+    assert response.status_code == 200
+    assert len(response.json()["findings"]) == 1

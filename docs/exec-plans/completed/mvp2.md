@@ -39,7 +39,7 @@ bash scripts/check.sh
 bash attack2patch/scripts/demo.sh
 ```
 
-결과: 2026-08-11 기준 38 tests passed, 데모 patch score 100, post-patch Finding 0건.
+결과: 2026-08-12 기준 39 tests passed, 데모 patch score 100, post-patch Finding 0건.
 Codex CLI와 Claude CLI는 실제 인증 세션으로 dry-run하여 각각 구조화 후보 생성과 VERIFIED
 검증까지 통과했다. 현재 개발 환경에 설치되지 않은 OpenCode CLI는 동일 provider 계약의 mock
 JSONL event 테스트로 검증했다.
@@ -61,6 +61,7 @@ JSONL event 테스트로 검증했다.
 ## 결정 기록
 
 - LLM 출력은 선택한 local CLI의 구조화 출력 뒤 Pydantic과 로컬 hash/range 검증을 다시 거친다.
+- 기본 run은 Codex CLI를 사용하고 `--llm-cli`로 OpenCode/Claude를 선택하며 `--no-llm`만 opt-out이다.
 - push와 PR은 branch/commit과 분리된 설정·CLI 게이트로 유지한다.
 
 ## 남은 기술 부채

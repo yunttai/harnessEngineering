@@ -28,6 +28,60 @@ def build_orchestrator(
     execute_tests: bool | None = None,
     execute_security_tests: bool | None = None,
 ) -> Orchestrator:
+    detection = build_detection_service(settings=settings, config_path=config_path)
+    excluded = set(settings.scope.excluded_directories)
+
+    verification_settings = deepcopy(settings.verification)
+    if execute_tests is not None:
+        verification_settings.execute_project_tests = execute_tests
+    if execute_security_tests is not None:
+        verification_settings.execute_project_security_tests = execute_security_tests
+
+    applier = SafePatchApplier()
+    verifier = LocalCopyVerifier(
+        detection=detection,
+        settings=verification_settings,
+        excluded_directories=excluded,
+        applier=applier,
+    )
+    store = build_artifact_store(settings=settings)
+
+    analyzer = RuleBasedAnalyzer()
+    patch_providers = [BuiltinCwe89Patcher()]
+    if settings.llm.enabled:
+        llm = CliLlmProvider(settings.llm)
+        if not llm.available():
+            raise RuntimeError(
+                f"llm.enabled requires installed CLI executable: {llm.executable_name}"
+            )
+        if settings.llm.use_for_analysis:
+            analyzer = llm
+        if settings.llm.use_for_patching:
+            patch_providers.append(llm)
+
+    patcher = (
+        patch_providers[0]
+        if len(patch_providers) == 1
+        else CompositePatchProvider(patch_providers)
+    )
+
+    return Orchestrator(
+        settings=settings,
+        config_path=config_path,
+        detection=detection,
+        analyzer=analyzer,
+        patcher=patcher,
+        verifier=verifier,
+        applier=applier,
+        store=store,
+    )
+
+
+def build_detection_service(
+    *,
+    settings: HarnessSettings,
+    config_path: Path,
+) -> DetectionService:
     config_path = config_path.resolve()
     excluded = set(settings.scope.excluded_directories)
     scanners = []
@@ -71,60 +125,19 @@ def build_orchestrator(
                 )
             )
 
-    detection = DetectionService(
+    return DetectionService(
         scanners,
         fail_on_required_error=settings.detection.fail_on_required_scanner_error,
     )
 
-    verification_settings = deepcopy(settings.verification)
-    if execute_tests is not None:
-        verification_settings.execute_project_tests = execute_tests
-    if execute_security_tests is not None:
-        verification_settings.execute_project_security_tests = execute_security_tests
 
-    applier = SafePatchApplier()
-    verifier = LocalCopyVerifier(
-        detection=detection,
-        settings=verification_settings,
-        excluded_directories=excluded,
-        applier=applier,
-    )
+def build_artifact_store(*, settings: HarnessSettings) -> ArtifactStore:
     artifact_root = Path(settings.artifact_root)
     if not artifact_root.is_absolute():
         artifact_root = Path.cwd() / artifact_root
-    store = ArtifactStore(
+    return ArtifactStore(
         artifact_root,
         redact_patterns=settings.logging.redact_patterns,
-    )
-
-    analyzer = RuleBasedAnalyzer()
-    patch_providers = [BuiltinCwe89Patcher()]
-    if settings.llm.enabled:
-        llm = CliLlmProvider(settings.llm)
-        if not llm.available():
-            raise RuntimeError(
-                f"llm.enabled requires installed CLI executable: {llm.executable_name}"
-            )
-        if settings.llm.use_for_analysis:
-            analyzer = llm
-        if settings.llm.use_for_patching:
-            patch_providers.append(llm)
-
-    patcher = (
-        patch_providers[0]
-        if len(patch_providers) == 1
-        else CompositePatchProvider(patch_providers)
-    )
-
-    return Orchestrator(
-        settings=settings,
-        config_path=config_path,
-        detection=detection,
-        analyzer=analyzer,
-        patcher=patcher,
-        verifier=verifier,
-        applier=applier,
-        store=store,
     )
 
 

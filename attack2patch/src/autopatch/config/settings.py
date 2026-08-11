@@ -63,7 +63,7 @@ class PatchingSettings(BaseModel):
 
 
 class LlmSettings(BaseModel):
-    enabled: bool = False
+    enabled: bool = True
     provider: Literal["codex", "opencode", "claude"] = "codex"
     executable: str | None = None
     model: str | None = None

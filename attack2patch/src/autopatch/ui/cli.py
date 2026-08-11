@@ -8,7 +8,12 @@ from typing import Annotated, Literal, cast
 import typer
 
 from autopatch.config import load_settings
-from autopatch.runtime.factory import build_orchestrator, build_publishing_service
+from autopatch.runtime.factory import (
+    build_artifact_store,
+    build_detection_service,
+    build_orchestrator,
+    build_publishing_service,
+)
 from autopatch.service import PublishOptions
 from autopatch.types import FindingStatus, RunState
 from autopatch.ui.common import validate_target
@@ -40,8 +45,8 @@ def scan(
     config_path = _config_path(config)
     settings = load_settings(config_path)
     resolved = validate_target(target, settings)
-    orchestrator = build_orchestrator(settings=settings, config_path=config_path)
-    result = orchestrator.detection.scan(resolved)
+    detection = build_detection_service(settings=settings, config_path=config_path)
+    result = detection.scan(resolved)
 
     payload = {
         "target": str(resolved),
@@ -101,9 +106,16 @@ def run(
         str | None,
         typer.Option(
             "--llm-cli",
-            help="Enable an authenticated local LLM CLI: codex, opencode, or claude",
+            help="Select an authenticated local LLM CLI: codex, opencode, or claude",
         ),
     ] = None,
+    no_llm: Annotated[
+        bool,
+        typer.Option(
+            "--no-llm",
+            help="Disable the default LLM CLI and use deterministic providers only",
+        ),
+    ] = False,
     llm_model: Annotated[
         str | None,
         typer.Option(
@@ -119,6 +131,8 @@ def run(
     """Execute detection, analysis, patch generation and verification."""
     config_path = _config_path(config)
     settings = load_settings(config_path)
+    if no_llm and llm_cli is not None:
+        raise typer.BadParameter("--no-llm cannot be combined with --llm-cli")
     if llm_cli is not None:
         normalized = llm_cli.strip().lower()
         if normalized not in {"codex", "opencode", "claude"}:
@@ -128,6 +142,8 @@ def run(
             Literal["codex", "opencode", "claude"],
             normalized,
         )
+    if no_llm:
+        settings.llm.enabled = False
     if llm_model is not None:
         if not settings.llm.enabled:
             raise typer.BadParameter("--llm-model requires --llm-cli or llm.enabled=true")
@@ -229,8 +245,8 @@ def publish(
     config_path = _config_path(config)
     settings = load_settings(config_path)
     resolved = validate_target(target, settings)
-    orchestrator = build_orchestrator(settings=settings, config_path=config_path)
-    report = orchestrator.store.read_run(run_id)
+    store = build_artifact_store(settings=settings)
+    report = store.read_run(run_id)
     if Path(report.target).resolve() != resolved:
         raise typer.BadParameter("run target does not match the requested repository")
     service = build_publishing_service(settings=settings)
@@ -259,7 +275,7 @@ def publish(
         commit_sha=result.commit_sha,
         pushed=result.pushed,
     )
-    orchestrator.store.write_run(report)
+    store.write_run(report)
     typer.echo(f"state: {report.state}")
     typer.echo(f"branch: {result.branch}")
     typer.echo(f"commit: {result.commit_sha or '-'}")

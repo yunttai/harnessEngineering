@@ -43,9 +43,9 @@ python -m autopatch.ui.cli scan examples\vulnerable_flask
 python -m autopatch.ui.cli run examples\vulnerable_flask
 ```
 
-패치 후보에 로컬 LLM CLI를 추가하려면 선택한 CLI에 로그인한 뒤 `--llm-cli codex`,
-`--llm-cli opencode` 또는 `--llm-cli claude`를 `run` 명령에 추가합니다. API key를
-Attack2Patch 설정에 저장하지 않습니다.
+`run`은 기본적으로 로그인된 로컬 Codex CLI를 사용합니다. OpenCode 또는 Claude로 바꾸려면
+`--llm-cli opencode` 또는 `--llm-cli claude`를 지정합니다. LLM 없는 결정적 실행은
+`--no-llm`을 명시해야 하며 API key는 Attack2Patch 설정에 저장하지 않습니다.
 
 ## 개발 하네스
 

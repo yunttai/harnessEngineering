@@ -9,6 +9,7 @@ from typing import Any
 
 from autopatch.config import SandboxSettings
 from autopatch.runtime.command import CommandRunner
+from autopatch.runtime.sandbox import prepare_container_workspace
 from autopatch.runtime.scanner_container import DockerScannerRunner
 from autopatch.service.normalization import (
     finding_id_from_fingerprint,
@@ -301,6 +302,7 @@ class TrivyScanner:
         elif self._docker_available():
             assert self.docker_image is not None
             self.cache_dir.mkdir(parents=True, exist_ok=True)
+            prepare_container_workspace(self.cache_dir)
             result = self.docker_runner.run(
                 image=self.docker_image,
                 argv=[

@@ -28,8 +28,8 @@ def create_database() -> sqlite3.Connection:
 def get_user(connection: sqlite3.Connection, request: Request) -> list[dict[str, object]]:
     cursor = connection.cursor()
     user_id = request.args.get("id", "")
-    query = f"SELECT * FROM users WHERE id={user_id}"  # noqa: S608 - vulnerable fixture
-    cursor.execute(query)
+    query = 'SELECT * FROM users WHERE id=?'
+    cursor.execute(query, (user_id,))
     return [dict(row) for row in cursor.fetchall()]
 
 

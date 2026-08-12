@@ -1,0 +1,16 @@
+id: attack2patch-real-sqlite-sqli
+
+info:
+  name: Attack2Patch real SQLite injection differential
+  author: attack2patch
+  severity: high
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/users?id=1%20OR%201%3D1"
+    matchers:
+      - type: word
+        part: body
+        words:
+          - '"count": 2'
